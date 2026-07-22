@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Science World — Teacher Panel</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --ink:#20302c; --paper:#f3efe4; --panel:#ffffff; --line:#20302c;
+    --accent:#2f6f5e; --accent-dark:#204d41; --accent-soft:#e2ede7;
+    --danger:#a4402f; --danger-soft:#f6e5e0; --muted:#6b7a75;
+    --red:#e0332b; --red-dark:#a41f19; --yellow:#fff3b0; --yellow-line:#e8c93a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Segoe UI','Noto Sans Devanagari',Arial,sans-serif;
+    background:radial-gradient(circle at 15% 10%, #e9e3d2 0%, transparent 45%), var(--paper);
+    color:var(--ink); min-height:100vh;
+  }
+  .topbar{ background:#0e1614; padding:14px 24px; display:flex; align-items:center; gap:10px; }
+  .logo-text{ color:#fff; font-weight:700; font-size:1.15rem; }
+  .logo-badge{ background:var(--red); color:#fff; font-weight:800; font-size:0.82rem; padding:4px 9px; border-radius:5px; box-shadow:0 2px 0 var(--red-dark); }
+  .page{ max-width:1200px; margin:0 auto; padding:24px 20px 60px; }
+  .layout{ display:flex; gap:22px; align-items:flex-start; }
+  @media (max-width:900px){ .layout{ flex-direction:column; } }
+  .left-col{ flex:1 1 500px; min-width:0; }
+  .right-col{ flex:0 0 340px; }
+  @media (max-width:900px){ .right-col{ flex:1 1 auto; width:100%; } }
+
+  .card{ background:var(--panel); border:1.5px solid #ded6c2; border-radius:16px; padding:26px; box-shadow:0 1px 0 #fff inset,0 10px 30px -18px rgba(32,48,44,0.35); margin-bottom:18px; }
+  label{ display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); font-weight:600; margin-bottom:6px; }
+  input[type=text]{ width:100%; padding:12px 13px; font-size:0.92rem; border:1.5px solid #d7d0bd; border-radius:10px; background:#fbfaf6; color:var(--ink); margin-bottom:14px; }
+  input[type=text]:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .hint{ font-size:0.78rem; color:var(--muted); margin:-8px 0 16px; }
+
+  button{ width:100%; padding:13px; font-size:0.9rem; font-weight:600; border:none; border-radius:10px; cursor:pointer; }
+  .btn-primary{ background:var(--accent); color:#fff; box-shadow:0 3px 0 var(--accent-dark); }
+  .btn-primary:hover{ transform:translateY(1px); box-shadow:0 2px 0 var(--accent-dark); }
+  .btn-primary:disabled{ opacity:0.5; cursor:not-allowed; transform:none; }
+  .btn-danger{ background:var(--danger); color:#fff; box-shadow:0 3px 0 #7a2f22; margin-top:10px; }
+  .btn-dark{ background:var(--ink); color:#fff; box-shadow:0 3px 0 #0e1614; }
+
+  .status{ font-size:0.84rem; margin-top:14px; padding:11px 13px; border-radius:10px; background:var(--accent-soft); border-left:3px solid var(--accent); display:none; line-height:1.5; }
+  .status.show{ display:block; }
+  .status.err{ background:var(--danger-soft); border-left-color:var(--danger); }
+
+  .link-box{ display:none; margin-top:14px; background:var(--accent-soft); border:1px dashed var(--accent); border-radius:10px; padding:13px; }
+  .link-box.show{ display:block; }
+  .link-row{ display:flex; gap:8px; }
+  .link-row input{ flex:1; margin-bottom:0; font-size:0.8rem; background:#fff; color:var(--accent-dark); font-weight:600; }
+  .copy-btn{ width:auto; padding:0 16px; background:var(--accent-dark); color:#fff; font-size:0.82rem; }
+
+  .stat-row{ display:flex; align-items:center; gap:14px; margin-top:14px; }
+  .stat-box{ background:var(--accent-soft); border-radius:10px; padding:9px 15px; display:flex; flex-direction:column; align-items:center; }
+  .count{ font-size:1.5rem; font-weight:700; color:var(--accent-dark); line-height:1; }
+  .count-label{ font-size:0.66rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-top:3px; }
+  .live-tag{ display:none; align-items:center; gap:6px; font-size:0.75rem; font-weight:700; color:var(--danger); letter-spacing:0.05em; text-transform:uppercase; }
+  .live-tag.show{ display:flex; }
+  .dot{ width:8px;height:8px;border-radius:50%; background:var(--danger); animation:pulse 1.4s infinite; }
+  @keyframes pulse{ 0%{opacity:1;} 50%{opacity:0.25;} 100%{opacity:1;} }
+
+  video{ width:100%; margin-top:16px; border-radius:12px; background:#111; border:1.5px solid var(--line); display:none; }
+  .media-controls{ display:flex; gap:10px; margin-top:12px; }
+  .toggle-btn{ flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:11px; border-radius:10px; font-size:0.83rem; font-weight:600; background:var(--accent-soft); color:var(--accent-dark); }
+  .toggle-btn.off{ background:var(--danger-soft); color:var(--danger); }
+
+  .side-tab{ font-weight:700; font-size:0.9rem; color:var(--accent-dark); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+
+  /* Chat */
+  .chat-list{ height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:12px; padding-right:4px; }
+  .chat-msg{ background:var(--accent-soft); border-radius:8px; padding:8px 11px; font-size:0.83rem; line-height:1.4; }
+  .chat-msg.admin{ background:var(--yellow); border:1px solid var(--yellow-line); }
+  .chat-name{ font-weight:700; color:var(--accent-dark); margin-right:6px; }
+  .chat-input-row{ display:flex; gap:8px; }
+  .chat-input-row input{ flex:1; margin-bottom:0; }
+  .chat-input-row button{ width:auto; padding:0 16px; background:var(--accent); color:#fff; }
+
+  /* Poll */
+  .poll-opt-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .poll-opt-row input{ margin-bottom:0; }
+  .remove-opt-btn{ width:auto; flex:0 0 auto; padding:0 13px; background:var(--danger-soft); color:var(--danger); border-radius:8px; font-weight:700; font-size:0.9rem; }
+  .remove-opt-btn:disabled{ opacity:0.35; cursor:not-allowed; }
+  .poll-bar-row{ margin-bottom:10px; }
+  .poll-bar-label{ font-size:0.8rem; margin-bottom:4px; display:flex; justify-content:space-between; }
+  .poll-bar-track{ background:var(--accent-soft); border-radius:6px; height:10px; overflow:hidden; }
+  .poll-bar-fill{ background:var(--accent); height:100%; border-radius:6px; }
+  .poll-timer{ font-size:0.78rem; color:var(--muted); margin:8px 0 10px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo-text">Science</span>
+  <span class="logo-badge">World</span>
+</div>
+
+<div class="page">
+  <div class="layout">
+
+    <div class="left-col">
+      <div class="card">
+        <div class="side-tab">📡 Broadcast</div>
+        <div id="setupBlock">
+          <p class="hint" style="margin-top:0;">Room ID is already set — click below to start</p>
+          <button class="btn-primary" id="startBtn">Start Camera</button>
+        </div>
+
+        <div id="statusBox" class="status"></div>
+
+        <div id="linkBox" class="link-box">
+          <label>Send this link to students</label>
+          <div class="link-row">
+            <input type="text" id="shareLink" readonly>
+            <button class="copy-btn" id="copyBtn">Copy</button>
+          </div>
+        </div>
+
+        <div class="stat-row" id="statRow" style="display:none;">
+          <div class="stat-box"><div class="count" id="studentCount">0</div><div class="count-label">Connected</div></div>
+          <div class="live-tag" id="liveTag"><span class="dot"></span> LIVE</div>
+        </div>
+
+        <video id="localVideo" autoplay muted playsinline></video>
+
+        <div class="media-controls" id="mediaControls" style="display:none;">
+          <button class="toggle-btn" id="micBtn">🎤 Mic ON</button>
+          <button class="toggle-btn" id="camBtn">📷 Camera ON</button>
+        </div>
+
+        <button class="btn-danger" id="stopBtn" style="display:none;">Stop Broadcast</button>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="card">
+        <div class="side-tab">📊 Poll</div>
+        <div id="pollFormArea">
+          <label>Question</label>
+          <input type="text" id="pollQuestion" placeholder="e.g. Who discovered Mitochondria?">
+          <label>Options</label>
+          <div id="pollOptionsList"></div>
+          <button type="button" class="btn-dark" id="addOptionBtn" style="margin-bottom:14px;">+ Add Option</button>
+          <label>Duration (in minutes)</label>
+          <input type="text" id="pollDuration" placeholder="e.g. 2">
+          <button class="btn-primary" id="startPollBtn">Start Poll</button>
+        </div>
+        <div id="pollLiveArea" style="display:none;">
+          <div id="pollLiveQuestion" style="font-weight:700; margin-bottom:10px;"></div>
+          <div id="pollResults"></div>
+          <div class="poll-timer" id="pollTimer"></div>
+          <button class="btn-danger" id="closePollBtn">Close Poll</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="side-tab">💬 Chat</div>
+        <div class="chat-list" id="chatList"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Type a message...">
+          <button id="chatSendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ROOM_ID = "myclass01";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCw4k_h4QHEDOK77DFzRod96rG0MNAKBqE",
+  authDomain: "liveee-9dce9.firebaseapp.com",
+  projectId: "liveee-9dce9",
+  storageBucket: "liveee-9dce9.firebasestorage.app",
+  messagingSenderId: "652809982147",
+  appId: "1:652809982147:web:239082a8816d3334179276",
+  measurementId: "G-M9HG78N0B8"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function roomRef(){ return db.collection('rooms').doc(ROOM_ID); }
+function messagesRef(){ return roomRef().collection('messages'); }
+function pollDocRef(){ return roomRef().collection('poll').doc('active'); }
+
+let peer = null;
+let localStream = null;
+let connectedCalls = [];
+let studentCount = 0;
+
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const statusBox = document.getElementById('statusBox');
+const localVideo = document.getElementById('localVideo');
+const statRow = document.getElementById('statRow');
+const studentCountEl = document.getElementById('studentCount');
+const setupBlock = document.getElementById('setupBlock');
+const linkBox = document.getElementById('linkBox');
+const shareLinkInput = document.getElementById('shareLink');
+const copyBtn = document.getElementById('copyBtn');
+const liveTag = document.getElementById('liveTag');
+const mediaControls = document.getElementById('mediaControls');
+const micBtn = document.getElementById('micBtn');
+const camBtn = document.getElementById('camBtn');
+
+function showStatus(msg, isError){ statusBox.textContent = msg; statusBox.classList.add('show'); statusBox.classList.toggle('err', !!isError); }
+function updateCount(){ studentCountEl.textContent = studentCount; }
+function buildStudentLink(){ return window.location.href.replace(/admin\.html.*$/, 'student.html'); }
+
+const iceConfig = {
+  iceServers: [
+    { urls: "stun:stun.relay.metered.ca:80" },
+    { urls: "turn:global.relay.metered.ca:80", username: "398918334c99a4f629ac9e60", credential: "d6o4Pj8ZG6RlTytA" },
+    { urls: "turn:global.relay.metered.ca:443", username: "398918334c99a4f629ac9e60", credential: "d6o4Pj8ZG6RlTytA" }
+  ]
+};
+
+startBtn.addEventListener('click', async () => {
+  const roomId = ROOM_ID;
+  startBtn.disabled = true;
+  showStatus('Requesting camera access...', false);
+
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideo.srcObject = localStream;
+    localVideo.style.display = 'block';
+  } catch (err) {
+    showStatus('Camera access denied: ' + err.message, true);
+    startBtn.disabled = false;
+    return;
+  }
+
+  peer = new Peer(roomId, { debug: 1, config: iceConfig });
+
+  peer.on('open', (id) => {
+    showStatus("You're live! Send the link below to students.", false);
+    setupBlock.style.display = 'none';
+    stopBtn.style.display = 'block';
+    statRow.style.display = 'flex';
+    liveTag.classList.add('show');
+    mediaControls.style.display = 'flex';
+
+    const link = buildStudentLink();
+    shareLinkInput.value = link;
+    linkBox.classList.add('show');
+  });
+
+  peer.on('call', (call) => {
+    call.answer(localStream);
+    connectedCalls.push(call);
+    studentCount++;
+    updateCount();
+    call.on('close', () => {
+      studentCount = Math.max(0, studentCount - 1);
+      updateCount();
+      connectedCalls = connectedCalls.filter(c => c !== call);
+    });
+  });
+
+  peer.on('error', (err) => {
+    if (err.type === 'unavailable-id') {
+      showStatus('This Room ID is already in use.', true);
+      startBtn.disabled = false;
+      peer.destroy();
+    } else {
+      showStatus('Error: ' + err.type, true);
+    }
+  });
+});
+
+micBtn.addEventListener('click', () => {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  if (!track) return;
+  track.enabled = !track.enabled;
+  micBtn.textContent = track.enabled ? '🎤 Mic ON' : '🔇 Mic OFF';
+  micBtn.classList.toggle('off', !track.enabled);
+});
+
+camBtn.addEventListener('click', () => {
+  if (!localStream) return;
+  const track = localStream.getVideoTracks()[0];
+  if (!track) return;
+  track.enabled = !track.enabled;
+  camBtn.textContent = track.enabled ? '📷 Camera ON' : '📷 Camera OFF';
+  camBtn.classList.toggle('off', !track.enabled);
+});
+
+copyBtn.addEventListener('click', () => {
+  shareLinkInput.select();
+  navigator.clipboard.writeText(shareLinkInput.value).then(() => {
+    copyBtn.textContent = 'Copied ✓';
+    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1800);
+  }).catch(() => { document.execCommand('copy'); });
+});
+
+stopBtn.addEventListener('click', () => {
+  connectedCalls.forEach(c => c.close());
+  connectedCalls = [];
+  studentCount = 0;
+  if (localStream) localStream.getTracks().forEach(t => t.stop());
+  if (peer) peer.destroy();
+  localVideo.style.display = 'none';
+  mediaControls.style.display = 'none';
+  micBtn.textContent = '🎤 Mic ON'; micBtn.classList.remove('off');
+  camBtn.textContent = '📷 Camera ON'; camBtn.classList.remove('off');
+  stopBtn.style.display = 'none';
+  statRow.style.display = 'none';
+  liveTag.classList.remove('show');
+  linkBox.classList.remove('show');
+  setupBlock.style.display = 'block';
+  startBtn.disabled = false;
+  showStatus('Broadcast stopped.', false);
+});
+
+/* ===== Chat ===== */
+const chatList = document.getElementById('chatList');
+const chatInput = document.getElementById('chatInput');
+const chatSendBtn = document.getElementById('chatSendBtn');
+
+function listenChat() {
+  messagesRef().orderBy('ts', 'asc').limitToLast(150).onSnapshot(snap => {
+    chatList.innerHTML = '';
+    snap.forEach(doc => {
+      const m = doc.data();
+      const div = document.createElement('div');
+      div.className = 'chat-msg' + (m.isAdmin ? ' admin' : '');
+      div.innerHTML = '<span class="chat-name">' + escapeHtml(m.name || 'Student') + '</span>' + escapeHtml(m.text || '');
+      chatList.appendChild(div);
+    });
+    chatList.scrollTop = chatList.scrollHeight;
+  });
+}
+
+function sendAdminMsg() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  messagesRef().add({ name: 'Teacher', text, isAdmin: true, ts: firebase.firestore.FieldValue.serverTimestamp() });
+  chatInput.value = '';
+}
+chatSendBtn.addEventListener('click', sendAdminMsg);
+chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAdminMsg(); });
+listenChat();
+
+/* ===== Poll ===== */
+const pollFormArea = document.getElementById('pollFormArea');
+const pollLiveArea = document.getElementById('pollLiveArea');
+const pollQuestion = document.getElementById('pollQuestion');
+const pollOptionsList = document.getElementById('pollOptionsList');
+const addOptionBtn = document.getElementById('addOptionBtn');
+const pollDuration = document.getElementById('pollDuration');
+const startPollBtn = document.getElementById('startPollBtn');
+const pollLiveQuestion = document.getElementById('pollLiveQuestion');
+const pollResults = document.getElementById('pollResults');
+const pollTimer = document.getElementById('pollTimer');
+const closePollBtn = document.getElementById('closePollBtn');
+
+let pollAutoCloseTimer = null;
+
+function renumberOptionRows() {
+  const rows = pollOptionsList.querySelectorAll('.poll-opt-row');
+  rows.forEach((row, i) => {
+    row.querySelector('.poll-opt-input').placeholder = 'Option ' + (i + 1);
+    row.querySelector('.remove-opt-btn').disabled = rows.length <= 2;
+  });
+}
+
+function createOptionRow() {
+  const row = document.createElement('div');
+  row.className = 'poll-opt-row';
+  row.innerHTML = '<input type="text" class="poll-opt-input" placeholder="Option">' +
+    '<button type="button" class="remove-opt-btn" title="Remove option">✕</button>';
+  row.querySelector('.remove-opt-btn').addEventListener('click', () => {
+    if (pollOptionsList.querySelectorAll('.poll-opt-row').length > 2) {
+      row.remove();
+      renumberOptionRows();
+    }
+  });
+  return row;
+}
+
+function addOptionRow() {
+  pollOptionsList.appendChild(createOptionRow());
+  renumberOptionRows();
+}
+
+function resetOptionRows() {
+  pollOptionsList.innerHTML = '';
+  addOptionRow();
+  addOptionRow();
+}
+
+addOptionBtn.addEventListener('click', addOptionRow);
+resetOptionRows();
+
+startPollBtn.addEventListener('click', () => {
+  const question = pollQuestion.value.trim();
+  const options = Array.from(pollOptionsList.querySelectorAll('.poll-opt-input'))
+    .map(inp => inp.value.trim()).filter(Boolean);
+  const minutes = parseFloat(pollDuration.value);
+
+  if (!question || options.length < 2 || !minutes || minutes <= 0) {
+    showStatus('Please fill in a question, at least 2 options, and a valid duration for the poll.', true);
+    return;
+  }
+
+  const durationSec = Math.round(minutes * 60);
+  pollDocRef().set({
+    question, options, durationSec,
+    status: 'open',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    endsAt: Date.now() + durationSec * 1000,
+    votes: {}
+  }).then(() => {
+    if (pollAutoCloseTimer) clearTimeout(pollAutoCloseTimer);
+    pollAutoCloseTimer = setTimeout(() => { closePoll(); }, durationSec * 1000);
+    pollQuestion.value = ''; pollDuration.value = ''; resetOptionRows();
+  });
+});
+
+function closePoll() {
+  pollDocRef().update({ status: 'closed' });
+}
+closePollBtn.addEventListener('click', closePoll);
+
+function renderPollResults(data) {
+  pollLiveQuestion.textContent = data.question;
+  const votes = data.votes || {};
+  const counts = new Array(data.options.length).fill(0);
+  Object.values(votes).forEach(v => { if (counts[v] !== undefined) counts[v]++; });
+  const total = counts.reduce((a, b) => a + b, 0) || 1;
+  pollResults.innerHTML = data.options.map((opt, i) => {
+    const pct = Math.round((counts[i] / total) * 100);
+    return '<div class="poll-bar-row"><div class="poll-bar-label"><span>' + escapeHtml(opt) + '</span><span>' + counts[i] + ' votes</span></div><div class="poll-bar-track"><div class="poll-bar-fill" style="width:' + pct + '%"></div></div></div>';
+  }).join('');
+}
+
+function listenPoll() {
+  pollDocRef().onSnapshot(doc => {
+    if (!doc.exists) {
+      pollFormArea.style.display = 'block';
+      pollLiveArea.style.display = 'none';
+      return;
+    }
+    const data = doc.data();
+    renderPollResults(data);
+    if (data.status === 'closed') {
+      pollFormArea.style.display = 'block';
+      pollLiveArea.style.display = 'block';
+      pollTimer.textContent = 'This poll is closed.';
+      closePollBtn.style.display = 'none';
+    } else {
+      pollFormArea.style.display = 'none';
+      pollLiveArea.style.display = 'block';
+      closePollBtn.style.display = 'block';
+      const remain = Math.max(0, Math.round((data.endsAt - Date.now()) / 1000));
+      pollTimer.textContent = 'Time left: ' + remain + ' seconds';
+    }
+  });
+}
+listenPoll();
+</script>
+</body>
+</html>
