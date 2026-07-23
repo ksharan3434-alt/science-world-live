@@ -20,7 +20,8 @@
     background:radial-gradient(circle at 15% 10%, #e9e3d2 0%, transparent 45%), var(--paper);
     color:var(--ink); min-height:100vh;
   }
-  .topbar{ background:#0e1614; padding:14px 24px; display:flex; align-items:center; gap:10px; }
+  .topbar{ background:#0e1614; padding:12px 24px; display:flex; align-items:center; gap:10px; }
+  .logo-img{ height:34px; width:auto; border-radius:6px; display:block; }
   .logo-text{ color:#fff; font-weight:700; font-size:1.15rem; }
   .logo-badge{ background:var(--red); color:#fff; font-weight:800; font-size:0.82rem; padding:4px 9px; border-radius:5px; box-shadow:0 2px 0 var(--red-dark); }
   .page{ max-width:1200px; margin:0 auto; padding:24px 20px 60px; }
@@ -34,6 +35,8 @@
   label{ display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); font-weight:600; margin-bottom:6px; }
   input[type=text]{ width:100%; padding:12px 13px; font-size:0.92rem; border:1.5px solid #d7d0bd; border-radius:10px; background:#fbfaf6; color:var(--ink); margin-bottom:14px; }
   input[type=text]:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  select{ width:100%; padding:12px 13px; font-size:0.92rem; border:1.5px solid #d7d0bd; border-radius:10px; background:#fbfaf6; color:var(--ink); margin-bottom:6px; }
+  select:disabled{ opacity:0.6; }
   .hint{ font-size:0.78rem; color:var(--muted); margin:-8px 0 16px; }
 
   button{ width:100%; padding:13px; font-size:0.9rem; font-weight:600; border:none; border-radius:10px; cursor:pointer; }
@@ -88,11 +91,38 @@
   .poll-bar-track{ background:var(--accent-soft); border-radius:6px; height:10px; overflow:hidden; }
   .poll-bar-fill{ background:var(--accent); height:100%; border-radius:6px; }
   .poll-timer{ font-size:0.78rem; color:var(--muted); margin:8px 0 10px; }
+
+  /* Char counter */
+  .char-counter{ font-size:0.72rem; color:var(--muted); text-align:right; margin-top:-6px; margin-bottom:10px; }
+  .char-counter.limit{ color:var(--danger); font-weight:700; }
+
+  /* Students / block panel */
+  .students-list{ max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
+  .students-empty{ color:var(--muted); font-size:0.82rem; text-align:center; padding:18px 0; }
+  .student-row{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; background:var(--accent-soft); border-radius:8px; padding:8px 10px; font-size:0.82rem; }
+  .student-row.is-chat-blocked{ background:#fff3d6; }
+  .student-row.is-full-blocked{ background:var(--danger-soft); }
+  .s-name{ flex:1 1 auto; min-width:60px; font-weight:600; color:var(--accent-dark); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .s-badge{ font-size:0.64rem; font-weight:700; padding:2px 7px; border-radius:10px; white-space:nowrap; }
+  .s-badge.chat{ background:var(--yellow); color:#7a5d00; }
+  .s-badge.full{ background:var(--danger); color:#fff; }
+  .s-btn{ width:auto; padding:6px 10px; font-size:0.72rem; border-radius:6px; background:var(--panel); border:1px solid #d7d0bd; color:var(--ink); font-weight:600; cursor:pointer; }
+  .s-btn.active{ background:var(--danger); color:#fff; border-color:var(--danger); }
+  .students-note{ font-size:0.76rem; color:var(--muted); margin-top:10px; line-height:1.5; }
+
+  /* Mobile tweaks */
+  @media (max-width:480px){
+    .page{ padding:16px 12px 40px; }
+    .topbar{ padding:12px 16px; }
+    .card{ padding:18px; }
+    .stat-row{ flex-wrap:wrap; }
+  }
 </style>
 </head>
 <body>
 
 <div class="topbar">
+  <img src="logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none'">
   <span class="logo-text">Science</span>
   <span class="logo-badge">World</span>
 </div>
@@ -105,6 +135,13 @@
         <div class="side-tab">📡 Broadcast</div>
         <div id="setupBlock">
           <p class="hint" style="margin-top:0;">Room ID is already set — click below to start</p>
+          <label>Broadcast Quality</label>
+          <select id="qualitySelect">
+            <option value="480">480p (Data Saver)</option>
+            <option value="720" selected>720p (Recommended)</option>
+            <option value="1080">1080p (HD — needs strong internet)</option>
+          </select>
+          <p class="hint" style="margin-top:-10px;">You can change this anytime, even while you're live.</p>
           <button class="btn-primary" id="startBtn">Start Camera</button>
         </div>
 
@@ -156,12 +193,21 @@
       </div>
 
       <div class="card">
+        <div class="side-tab">👥 Students</div>
+        <div class="students-list" id="studentsList">
+          <div class="students-empty" id="studentsEmpty">No students connected yet.</div>
+        </div>
+        <p class="students-note">"Mute Chat" stops a student from sending messages. "Block" also removes them from the live video. Students on a slow connection can also lower their own quality individually from their video player — that doesn't affect anyone else. This is all browser-based, so a student could get around a block using a different browser or device.</p>
+      </div>
+
+      <div class="card">
         <div class="side-tab">💬 Chat</div>
         <div class="chat-list" id="chatList"></div>
         <div class="chat-input-row">
-          <input type="text" id="chatInput" placeholder="Type a message...">
+          <input type="text" id="chatInput" placeholder="Type a message..." maxlength="50">
           <button id="chatSendBtn">Send</button>
         </div>
+        <div class="char-counter" id="charCounter">0/50</div>
       </div>
     </div>
 
@@ -207,10 +253,41 @@ const liveTag = document.getElementById('liveTag');
 const mediaControls = document.getElementById('mediaControls');
 const micBtn = document.getElementById('micBtn');
 const camBtn = document.getElementById('camBtn');
+const qualitySelect = document.getElementById('qualitySelect');
+
+const QUALITY_MAP = {
+  '480': { width: { ideal: 854 }, height: { ideal: 480 } },
+  '720': { width: { ideal: 1280 }, height: { ideal: 720 } },
+  '1080': { width: { ideal: 1920 }, height: { ideal: 1080 } }
+};
 
 function showStatus(msg, isError){ statusBox.textContent = msg; statusBox.classList.add('show'); statusBox.classList.toggle('err', !!isError); }
 function updateCount(){ studentCountEl.textContent = studentCount; }
 function buildStudentLink(){ return window.location.href.replace(/admin\.html.*$/, 'student.html'); }
+
+/* A student can pick "Low/Medium" from their own player if their internet is
+   slow. We don't run a media server, but WebRTC lets us set a lower
+   resolution/bitrate on that ONE student's connection specifically — other
+   students keep watching at full quality. */
+const STUDENT_QUALITY_MAP = {
+  low:    { scaleResolutionDownBy: 4, maxBitrate: 250000 },
+  medium: { scaleResolutionDownBy: 2, maxBitrate: 600000 },
+  high:   { scaleResolutionDownBy: 1, maxBitrate: 2500000 },
+  auto:   { scaleResolutionDownBy: 1, maxBitrate: 2500000 }
+};
+
+function applyQualityToCall(call, pref) {
+  const pc = call.peerConnection;
+  if (!pc) return;
+  const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+  if (!sender) return;
+  const cfg = STUDENT_QUALITY_MAP[pref] || STUDENT_QUALITY_MAP.auto;
+  const params = sender.getParameters();
+  if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+  params.encodings[0].scaleResolutionDownBy = cfg.scaleResolutionDownBy;
+  params.encodings[0].maxBitrate = cfg.maxBitrate;
+  sender.setParameters(params).catch(() => {});
+}
 
 const iceConfig = {
   iceServers: [
@@ -225,8 +302,13 @@ startBtn.addEventListener('click', async () => {
   startBtn.disabled = true;
   showStatus('Requesting camera access...', false);
 
+  const chosenQuality = QUALITY_MAP[qualitySelect.value] || QUALITY_MAP['720'];
+
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: { ...chosenQuality, frameRate: { ideal: 30 } },
+      audio: true
+    });
     localVideo.srcObject = localStream;
     localVideo.style.display = 'block';
   } catch (err) {
@@ -255,10 +337,22 @@ startBtn.addEventListener('click', async () => {
     connectedCalls.push(call);
     studentCount++;
     updateCount();
+
+    const meta = call.metadata || {};
+    let unsubQuality = null;
+    if (meta.clientId) {
+      unsubQuality = db.collection('rooms').doc(ROOM_ID).collection('students').doc(meta.clientId)
+        .onSnapshot(doc => {
+          const pref = doc.exists ? (doc.data().qualityPref || 'auto') : 'auto';
+          applyQualityToCall(call, pref);
+        });
+    }
+
     call.on('close', () => {
       studentCount = Math.max(0, studentCount - 1);
       updateCount();
       connectedCalls = connectedCalls.filter(c => c !== call);
+      if (unsubQuality) unsubQuality();
     });
   });
 
@@ -289,6 +383,40 @@ camBtn.addEventListener('click', () => {
   track.enabled = !track.enabled;
   camBtn.textContent = track.enabled ? '📷 Camera ON' : '📷 Camera OFF';
   camBtn.classList.toggle('off', !track.enabled);
+});
+
+/* Change broadcast resolution while already live — grabs a fresh camera
+   stream at the new resolution and swaps the video track into every
+   active student connection, without needing to restart the broadcast. */
+qualitySelect.addEventListener('change', async () => {
+  if (!localStream || !peer) return; // not live yet — the new value just applies next time Start is pressed
+  const chosenQuality = QUALITY_MAP[qualitySelect.value] || QUALITY_MAP['720'];
+  showStatus('Switching live quality to ' + qualitySelect.value + 'p...', false);
+  try {
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: { ...chosenQuality, frameRate: { ideal: 30 } },
+      audio: false
+    });
+    const newVideoTrack = newStream.getVideoTracks()[0];
+    const oldVideoTrack = localStream.getVideoTracks()[0];
+    const wasEnabled = oldVideoTrack ? oldVideoTrack.enabled : true;
+    newVideoTrack.enabled = wasEnabled;
+
+    if (oldVideoTrack) { localStream.removeTrack(oldVideoTrack); oldVideoTrack.stop(); }
+    localStream.addTrack(newVideoTrack);
+    localVideo.srcObject = localStream;
+
+    connectedCalls.forEach(call => {
+      const pc = call.peerConnection;
+      if (!pc) return;
+      const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (sender) sender.replaceTrack(newVideoTrack);
+    });
+
+    showStatus('Live quality is now ' + qualitySelect.value + 'p.', false);
+  } catch (err) {
+    showStatus('Could not switch quality: ' + err.message, true);
+  }
 });
 
 copyBtn.addEventListener('click', () => {
@@ -322,6 +450,13 @@ stopBtn.addEventListener('click', () => {
 const chatList = document.getElementById('chatList');
 const chatInput = document.getElementById('chatInput');
 const chatSendBtn = document.getElementById('chatSendBtn');
+const charCounter = document.getElementById('charCounter');
+
+chatInput.addEventListener('input', () => {
+  const len = chatInput.value.length;
+  charCounter.textContent = len + '/50';
+  charCounter.classList.toggle('limit', len >= 50);
+});
 
 function listenChat() {
   messagesRef().orderBy('ts', 'asc').limitToLast(150).onSnapshot(snap => {
@@ -338,14 +473,95 @@ function listenChat() {
 }
 
 function sendAdminMsg() {
-  const text = chatInput.value.trim();
+  const text = chatInput.value.trim().slice(0, 50);
   if (!text) return;
   messagesRef().add({ name: 'Teacher', text, isAdmin: true, ts: firebase.firestore.FieldValue.serverTimestamp() });
   chatInput.value = '';
+  charCounter.textContent = '0/50';
+  charCounter.classList.remove('limit');
 }
 chatSendBtn.addEventListener('click', sendAdminMsg);
 chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAdminMsg(); });
 listenChat();
+
+/* ===== Students & Block ===== */
+function studentsRef(){ return roomRef().collection('students'); }
+function blockedRef(cid){ return roomRef().collection('blocked').doc(cid); }
+
+const studentsList = document.getElementById('studentsList');
+const studentsEmpty = document.getElementById('studentsEmpty');
+
+let rawStudents = [];
+let blockedMap = {};
+
+function refreshStudentsView() {
+  const now = Date.now();
+  const online = rawStudents.filter(s => {
+    const t = s.lastActive && s.lastActive.toMillis ? s.lastActive.toMillis() : 0;
+    return now - t < 45000; // seen in the last 45s
+  });
+  renderStudents(online);
+}
+
+function renderStudents(students) {
+  if (!students.length) {
+    studentsList.innerHTML = '';
+    studentsList.appendChild(studentsEmpty);
+    return;
+  }
+  studentsList.innerHTML = students.map(s => {
+    const b = blockedMap[s.id];
+    const rowClass = b ? (b.type === 'full' ? 'is-full-blocked' : 'is-chat-blocked') : '';
+    const badge = b ? '<span class="s-badge ' + (b.type === 'full' ? 'full' : 'chat') + '">' + (b.type === 'full' ? 'Blocked' : 'Chat Muted') + '</span>' : '';
+    return '<div class="student-row ' + rowClass + '">' +
+      '<span class="s-name">' + escapeHtml(s.name || 'Student') + '</span>' + badge +
+      '<button class="s-btn chat-toggle' + (b && b.type === 'chat' ? ' active' : '') + '" data-id="' + s.id + '">' + (b && b.type === 'chat' ? 'Unmute' : 'Mute Chat') + '</button>' +
+      '<button class="s-btn full-toggle' + (b && b.type === 'full' ? ' active' : '') + '" data-id="' + s.id + '">' + (b && b.type === 'full' ? 'Unblock' : 'Block') + '</button>' +
+    '</div>';
+  }).join('');
+
+  studentsList.querySelectorAll('.chat-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const s = students.find(x => x.id === id) || {};
+      const cur = blockedMap[id];
+      if (cur && cur.type === 'chat') blockedRef(id).delete();
+      else blockedRef(id).set({ type: 'chat', name: s.name || '', blockedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    });
+  });
+  studentsList.querySelectorAll('.full-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const s = students.find(x => x.id === id) || {};
+      const cur = blockedMap[id];
+      if (cur && cur.type === 'full') blockedRef(id).delete();
+      else blockedRef(id).set({ type: 'full', name: s.name || '', blockedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    });
+  });
+}
+
+function listenStudents() {
+  studentsRef().onSnapshot(snap => {
+    rawStudents = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      rawStudents.push({ id: doc.id, name: d.name, lastActive: d.lastActive });
+    });
+    refreshStudentsView();
+  });
+}
+
+function listenBlocked() {
+  roomRef().collection('blocked').onSnapshot(snap => {
+    blockedMap = {};
+    snap.forEach(doc => { blockedMap[doc.id] = doc.data(); });
+    refreshStudentsView();
+  });
+}
+
+listenStudents();
+listenBlocked();
+setInterval(refreshStudentsView, 15000); // clear out students who went offline
 
 /* ===== Poll ===== */
 const pollFormArea = document.getElementById('pollFormArea');
