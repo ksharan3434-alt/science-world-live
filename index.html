@@ -13,6 +13,7 @@
     --accent:#2f6f5e; --accent-dark:#204d41; --accent-soft:#e2ede7;
     --danger:#a4402f; --danger-soft:#f6e5e0; --muted:#6b7a75;
     --red:#e0332b; --red-dark:#a41f19; --yellow:#fff3b0; --yellow-line:#e8c93a;
+    --meter-green:#2fae60; --meter-blue:#2f9fd6; --meter-yellow:#e8b23a;
   }
   *{box-sizing:border-box;}
   body{
@@ -20,8 +21,8 @@
     background:radial-gradient(circle at 15% 10%, #e9e3d2 0%, transparent 45%), var(--paper);
     color:var(--ink); min-height:100vh;
   }
-  .topbar{ background:#0e1614; padding:12px 24px; display:flex; align-items:center; gap:10px; }
-  .logo-img{ height:34px; width:auto; border-radius:6px; display:block; }
+  .topbar{ background:#0e1614; padding:14px 24px; display:flex; align-items:center; gap:10px; }
+  .logo-img{ height:32px; display:block; }
   .logo-text{ color:#fff; font-weight:700; font-size:1.15rem; }
   .logo-badge{ background:var(--red); color:#fff; font-weight:800; font-size:0.82rem; padding:4px 9px; border-radius:5px; box-shadow:0 2px 0 var(--red-dark); }
   .page{ max-width:1200px; margin:0 auto; padding:24px 20px 60px; }
@@ -45,6 +46,7 @@
   .btn-primary:disabled{ opacity:0.5; cursor:not-allowed; transform:none; }
   .btn-danger{ background:var(--danger); color:#fff; box-shadow:0 3px 0 #7a2f22; margin-top:10px; }
   .btn-dark{ background:var(--ink); color:#fff; box-shadow:0 3px 0 #0e1614; }
+  .btn-dark.off{ background:var(--danger); box-shadow:0 3px 0 #7a2f22; }
 
   .status{ font-size:0.84rem; margin-top:14px; padding:11px 13px; border-radius:10px; background:var(--accent-soft); border-left:3px solid var(--accent); display:none; line-height:1.5; }
   .status.show{ display:block; }
@@ -110,6 +112,21 @@
   .s-btn.active{ background:var(--danger); color:#fff; border-color:var(--danger); }
   .students-note{ font-size:0.76rem; color:var(--muted); margin-top:10px; line-height:1.5; }
 
+  /* Audio Mixer */
+  .mixer-channel{ margin-bottom:16px; }
+  .mixer-channel-head{ display:flex; align-items:center; justify-content:space-between; font-size:0.82rem; font-weight:600; color:var(--accent-dark); margin-bottom:6px; }
+  .mixer-channel input[type=range]{ width:100%; margin-bottom:8px; accent-color:var(--accent); }
+  .mixer-divider{ height:1.5px; background:#ded6c2; margin:18px 0; }
+  .level-meter{ position:relative; height:8px; border-radius:4px; background:#e7e0cc; overflow:hidden; }
+  .level-meter-green{ position:absolute; left:0; top:0; height:100%; width:0%; background:var(--meter-green); transition:width 0.05s linear; }
+  .level-meter-blue{ position:absolute; left:50%; top:0; height:100%; width:0%; background:var(--meter-blue); transition:width 0.05s linear; }
+  .eq-row{ display:flex; justify-content:space-between; gap:8px; padding:6px 0 4px; }
+  .eq-band{ flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .eq-slider{ -webkit-appearance:slider-vertical; appearance:slider-vertical; width:22px; height:90px; accent-color:var(--accent); cursor:pointer; }
+  .eq-val{ font-size:0.7rem; font-weight:700; color:var(--accent-dark); min-height:14px; }
+  .eq-band label{ font-size:0.62rem; margin:0; text-transform:none; letter-spacing:0; color:var(--muted); font-weight:600; }
+  .eq-preset-btns{ display:flex; gap:6px; }
+
   /* Mobile tweaks */
   @media (max-width:480px){
     .page{ padding:16px 12px 40px; }
@@ -122,7 +139,7 @@
 <body>
 
 <div class="topbar">
-  <img src="logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none'">
+  <img src="logo.png" alt="Science World" class="logo-img" id="logoImg" onerror="this.style.display='none';">
   <span class="logo-text">Science</span>
   <span class="logo-badge">World</span>
 </div>
@@ -166,8 +183,58 @@
           <button class="toggle-btn" id="micBtn">🎤 Mic ON</button>
           <button class="toggle-btn" id="camBtn">📷 Camera ON</button>
         </div>
+        <button class="btn-dark" id="shareScreenBtn" style="display:none; margin-top:10px;">🖥️ Share Screen</button>
 
         <button class="btn-danger" id="stopBtn" style="display:none;">Stop Broadcast</button>
+      </div>
+
+      <div class="card" id="mixerCard" style="display:none;">
+        <div class="side-tab">🎚️ Audio Mixer</div>
+
+        <div class="mixer-channel">
+          <div class="mixer-channel-head"><span>🎤 Mic</span><span id="micVolLabel">100%</span></div>
+          <input type="range" id="micVolSlider" min="0" max="200" value="100">
+          <div class="level-meter"><div class="level-meter-green" id="micMeterGreen"></div><div class="level-meter-blue" id="micMeterBlue"></div></div>
+        </div>
+
+        <div class="mixer-channel" id="desktopChannelRow" style="display:none;">
+          <div class="mixer-channel-head"><span>🖥️ Desktop Audio</span><span id="desktopVolLabel">100%</span></div>
+          <input type="range" id="desktopVolSlider" min="0" max="200" value="100">
+          <div class="level-meter"><div class="level-meter-green" id="desktopMeterGreen"></div><div class="level-meter-blue" id="desktopMeterBlue"></div></div>
+        </div>
+
+        <div class="mixer-divider"></div>
+
+        <div class="mixer-channel-head">
+          <span>Equalizer</span>
+          <div class="eq-preset-btns">
+            <button type="button" class="s-btn" id="eqThinBtn" title="Lighter, clearer voice">🪶 Thin</button>
+            <button type="button" class="s-btn" id="eqBoldBtn" title="Fuller, richer voice">💪 Bold</button>
+            <button type="button" class="s-btn" id="eqResetBtn">Reset</button>
+          </div>
+        </div>
+        <div class="eq-row">
+          <div class="eq-band"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" step="1" data-band="0"><span class="eq-val" id="eqVal0">0</span><label>60Hz</label></div>
+          <div class="eq-band"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" step="1" data-band="1"><span class="eq-val" id="eqVal1">0</span><label>250Hz</label></div>
+          <div class="eq-band"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" step="1" data-band="2"><span class="eq-val" id="eqVal2">0</span><label>1kHz</label></div>
+          <div class="eq-band"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" step="1" data-band="3"><span class="eq-val" id="eqVal3">0</span><label>4kHz</label></div>
+          <div class="eq-band"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" step="1" data-band="4"><span class="eq-val" id="eqVal4">0</span><label>12kHz</label></div>
+        </div>
+
+        <div class="mixer-divider"></div>
+
+        <div class="mixer-channel">
+          <div class="mixer-channel-head"><span>🚀 Boost</span><span id="boostLabel">100%</span></div>
+          <input type="range" id="boostSlider" min="100" max="300" value="100">
+        </div>
+
+        <div class="mixer-channel">
+          <div class="mixer-channel-head"><span>🔊 Master Volume</span><span id="masterVolLabel">100%</span></div>
+          <input type="range" id="masterVolSlider" min="0" max="150" value="100">
+          <div class="level-meter"><div class="level-meter-green" id="masterMeterGreen"></div><div class="level-meter-blue" id="masterMeterBlue"></div></div>
+        </div>
+
+        <p class="students-note">This is what students hear. Boost helps a quiet mic but can distort — a limiter runs automatically to soften harsh clipping. Desktop Audio only appears once you share your screen with sound.</p>
       </div>
     </div>
 
@@ -254,6 +321,26 @@ const mediaControls = document.getElementById('mediaControls');
 const micBtn = document.getElementById('micBtn');
 const camBtn = document.getElementById('camBtn');
 const qualitySelect = document.getElementById('qualitySelect');
+const shareScreenBtn = document.getElementById('shareScreenBtn');
+
+const mixerCard = document.getElementById('mixerCard');
+const micVolSlider = document.getElementById('micVolSlider');
+const micVolLabel = document.getElementById('micVolLabel');
+const micMeterGreen = document.getElementById('micMeterGreen');
+const micMeterBlue = document.getElementById('micMeterBlue');
+const desktopChannelRow = document.getElementById('desktopChannelRow');
+const desktopVolSlider = document.getElementById('desktopVolSlider');
+const desktopVolLabel = document.getElementById('desktopVolLabel');
+const desktopMeterGreen = document.getElementById('desktopMeterGreen');
+const desktopMeterBlue = document.getElementById('desktopMeterBlue');
+const eqSliders = Array.from(document.querySelectorAll('.eq-slider'));
+const eqResetBtn = document.getElementById('eqResetBtn');
+const boostSlider = document.getElementById('boostSlider');
+const boostLabel = document.getElementById('boostLabel');
+const masterVolSlider = document.getElementById('masterVolSlider');
+const masterVolLabel = document.getElementById('masterVolLabel');
+const masterMeterGreen = document.getElementById('masterMeterGreen');
+const masterMeterBlue = document.getElementById('masterMeterBlue');
 
 const QUALITY_MAP = {
   '480': { width: { ideal: 854 }, height: { ideal: 480 } },
@@ -289,6 +376,205 @@ function applyQualityToCall(call, pref) {
   sender.setParameters(params).catch(() => {});
 }
 
+/* ===== Audio Mixer (Web Audio API) =====
+   Everything students hear is routed through this graph so the teacher can
+   control it live: Mic + Desktop Audio channels -> 5-band Equalizer ->
+   Boost -> Compressor (a safety limiter so boosted/loud audio doesn't
+   clip harshly) -> Master Volume -> the audio track actually sent to
+   students. Tweaking any slider changes what's heard in real time —
+   no need to reconnect anyone. */
+let audioCtx = null;
+let micSourceNode = null, desktopSourceNode = null;
+let micGainNode = null, desktopGainNode = null, mixBus = null;
+let eqFilters = [];
+let boostGainNode = null, compressorNode = null, masterGainNode = null;
+let micAnalyser = null, desktopAnalyser = null, masterAnalyser = null;
+let destinationNode = null;
+let meterLoopRunning = false;
+let rawMicTrackRef = null; // the original getUserMedia mic track — detached from localStream but must still be stopped on cleanup
+
+const EQ_BANDS = [
+  { freq: 60,    type: 'lowshelf' },
+  { freq: 250,   type: 'peaking' },
+  { freq: 1000,  type: 'peaking' },
+  { freq: 4000,  type: 'peaking' },
+  { freq: 12000, type: 'highshelf' }
+];
+
+function initAudioEngine(micStream) {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  audioCtx.resume().catch(() => {});
+
+  mixBus = audioCtx.createGain(); mixBus.gain.value = 1;
+
+  micGainNode = audioCtx.createGain(); micGainNode.gain.value = micVolSlider.value / 100;
+  micAnalyser = audioCtx.createAnalyser(); micAnalyser.fftSize = 256;
+  micSourceNode = audioCtx.createMediaStreamSource(micStream);
+  micSourceNode.connect(micGainNode);
+  micGainNode.connect(micAnalyser);
+  micGainNode.connect(mixBus);
+
+  desktopGainNode = audioCtx.createGain(); desktopGainNode.gain.value = desktopVolSlider.value / 100;
+  desktopAnalyser = audioCtx.createAnalyser(); desktopAnalyser.fftSize = 256;
+
+  eqFilters = EQ_BANDS.map(band => {
+    const f = audioCtx.createBiquadFilter();
+    f.type = band.type;
+    f.frequency.value = band.freq;
+    if (band.type === 'peaking') f.Q.value = 1;
+    f.gain.value = 0;
+    return f;
+  });
+  let node = mixBus;
+  eqFilters.forEach(f => { node.connect(f); node = f; });
+
+  boostGainNode = audioCtx.createGain(); boostGainNode.gain.value = boostSlider.value / 100;
+  node.connect(boostGainNode);
+
+  compressorNode = audioCtx.createDynamicsCompressor();
+  compressorNode.threshold.value = -10;  // only engages near the top, so normal playback isn't squashed
+  compressorNode.knee.value = 12;
+  compressorNode.ratio.value = 4;        // gentle safety limiter instead of a hard clamp
+  compressorNode.attack.value = 0.02;    // slower attack so it doesn't "duck" every loud moment
+  compressorNode.release.value = 0.3;
+  boostGainNode.connect(compressorNode);
+
+  masterGainNode = audioCtx.createGain(); masterGainNode.gain.value = masterVolSlider.value / 100;
+  compressorNode.connect(masterGainNode);
+
+  masterAnalyser = audioCtx.createAnalyser(); masterAnalyser.fftSize = 256;
+  masterGainNode.connect(masterAnalyser);
+
+  destinationNode = audioCtx.createMediaStreamDestination();
+  masterGainNode.connect(destinationNode);
+
+  const processedTrack = destinationNode.stream.getAudioTracks()[0];
+  const rawTrack = localStream.getAudioTracks()[0];
+  if (rawTrack) { localStream.removeTrack(rawTrack); rawMicTrackRef = rawTrack; } // keeps running in the background, feeding micSourceNode
+  localStream.addTrack(processedTrack);
+
+  mixerCard.style.display = 'block';
+  startMeterLoop();
+}
+
+function addDesktopAudioSource(desktopAudioStream) {
+  if (!audioCtx) return;
+  removeDesktopAudioSource();
+  desktopSourceNode = audioCtx.createMediaStreamSource(desktopAudioStream);
+  desktopSourceNode.connect(desktopGainNode);
+  desktopGainNode.connect(desktopAnalyser);
+  desktopGainNode.connect(mixBus);
+  desktopChannelRow.style.display = 'block';
+}
+
+function removeDesktopAudioSource() {
+  if (desktopSourceNode) { try { desktopSourceNode.disconnect(); } catch (e) {} desktopSourceNode = null; }
+  if (desktopGainNode) { try { desktopGainNode.disconnect(); } catch (e) {} }
+  desktopChannelRow.style.display = 'none';
+  desktopMeterGreen.style.width = '0%'; desktopMeterBlue.style.width = '0%';
+}
+
+function teardownAudioEngine() {
+  meterLoopRunning = false;
+  if (audioCtx) { audioCtx.close().catch(() => {}); }
+  if (rawMicTrackRef) { try { rawMicTrackRef.stop(); } catch (e) {} rawMicTrackRef = null; }
+  audioCtx = null; micSourceNode = null; desktopSourceNode = null;
+  micGainNode = null; desktopGainNode = null; mixBus = null; eqFilters = [];
+  boostGainNode = null; compressorNode = null; masterGainNode = null;
+  micAnalyser = null; desktopAnalyser = null; masterAnalyser = null; destinationNode = null;
+  mixerCard.style.display = 'none';
+  desktopChannelRow.style.display = 'none';
+  micMeterGreen.style.width = '0%'; micMeterBlue.style.width = '0%';
+  desktopMeterGreen.style.width = '0%'; desktopMeterBlue.style.width = '0%';
+  masterMeterGreen.style.width = '0%'; masterMeterBlue.style.width = '0%';
+}
+
+function levelFromAnalyser(analyser, buf) {
+  analyser.getByteTimeDomainData(buf);
+  let sum = 0;
+  for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
+  return Math.sqrt(sum / buf.length);
+}
+
+const METER_GREEN_CAP = 50; // green zone is fixed up to this point; it never changes color
+
+function setMeter(elGreen, elBlue, level) {
+  const pct = Math.min(100, Math.round(level * 220)); // scaled up — typical speech RMS is fairly low
+  const greenPct = Math.min(pct, METER_GREEN_CAP);
+  const bluePct = Math.max(0, pct - METER_GREEN_CAP);
+  elGreen.style.width = greenPct + '%';
+  elBlue.style.width = bluePct + '%';
+}
+
+function startMeterLoop() {
+  if (meterLoopRunning) return;
+  meterLoopRunning = true;
+  const micBuf = new Uint8Array(micAnalyser.fftSize);
+  const desktopBuf = new Uint8Array(desktopAnalyser.fftSize);
+  const masterBuf = new Uint8Array(masterAnalyser.fftSize);
+
+  function loop() {
+    if (!meterLoopRunning || !audioCtx) return;
+    setMeter(micMeterGreen, micMeterBlue, levelFromAnalyser(micAnalyser, micBuf));
+    setMeter(desktopMeterGreen, desktopMeterBlue, desktopSourceNode ? levelFromAnalyser(desktopAnalyser, desktopBuf) : 0);
+    setMeter(masterMeterGreen, masterMeterBlue, levelFromAnalyser(masterAnalyser, masterBuf));
+    requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+micVolSlider.addEventListener('input', () => {
+  micVolLabel.textContent = micVolSlider.value + '%';
+  if (micGainNode) micGainNode.gain.value = micVolSlider.value / 100;
+});
+desktopVolSlider.addEventListener('input', () => {
+  desktopVolLabel.textContent = desktopVolSlider.value + '%';
+  if (desktopGainNode) desktopGainNode.gain.value = desktopVolSlider.value / 100;
+});
+boostSlider.addEventListener('input', () => {
+  boostLabel.textContent = boostSlider.value + '%';
+  if (boostGainNode) boostGainNode.gain.value = boostSlider.value / 100;
+});
+masterVolSlider.addEventListener('input', () => {
+  masterVolLabel.textContent = masterVolSlider.value + '%';
+  if (masterGainNode) masterGainNode.gain.value = masterVolSlider.value / 100;
+});
+eqSliders.forEach(slider => {
+  const band = parseInt(slider.dataset.band, 10);
+  const valEl = document.getElementById('eqVal' + band);
+  slider.addEventListener('input', () => {
+    valEl.textContent = (slider.value > 0 ? '+' : '') + slider.value;
+    if (eqFilters[band]) eqFilters[band].gain.value = parseFloat(slider.value);
+  });
+});
+eqResetBtn.addEventListener('click', () => {
+  eqSliders.forEach(slider => {
+    const band = parseInt(slider.dataset.band, 10);
+    slider.value = 0;
+    document.getElementById('eqVal' + band).textContent = '0';
+    if (eqFilters[band]) eqFilters[band].gain.value = 0;
+  });
+});
+
+/* Two quick voice-tone presets: Thin (patla) cuts the low end and lifts the
+   mid-highs for a clearer, lighter sound; Bold pushes the low end up for a
+   fuller, richer voice. Both just set the same 5 EQ sliders. */
+const EQ_PRESETS = {
+  thin: [-8, -4, 2, 4, 2],
+  bold: [6, 4, 2, 0, -2]
+};
+function applyEqPreset(name) {
+  const vals = EQ_PRESETS[name];
+  eqSliders.forEach(slider => {
+    const band = parseInt(slider.dataset.band, 10);
+    slider.value = vals[band];
+    document.getElementById('eqVal' + band).textContent = (vals[band] > 0 ? '+' : '') + vals[band];
+    if (eqFilters[band]) eqFilters[band].gain.value = vals[band];
+  });
+}
+document.getElementById('eqThinBtn').addEventListener('click', () => applyEqPreset('thin'));
+document.getElementById('eqBoldBtn').addEventListener('click', () => applyEqPreset('bold'));
+
 const iceConfig = {
   iceServers: [
     { urls: "stun:stun.relay.metered.ca:80" },
@@ -311,6 +597,7 @@ startBtn.addEventListener('click', async () => {
     });
     localVideo.srcObject = localStream;
     localVideo.style.display = 'block';
+    initAudioEngine(localStream);
   } catch (err) {
     showStatus('Camera access denied: ' + err.message, true);
     startBtn.disabled = false;
@@ -326,6 +613,7 @@ startBtn.addEventListener('click', async () => {
     statRow.style.display = 'flex';
     liveTag.classList.add('show');
     mediaControls.style.display = 'flex';
+    shareScreenBtn.style.display = 'block';
 
     const link = buildStudentLink();
     shareLinkInput.value = link;
@@ -367,13 +655,20 @@ startBtn.addEventListener('click', async () => {
   });
 });
 
+let micGainBeforeMute = 1;
 micBtn.addEventListener('click', () => {
-  if (!localStream) return;
-  const track = localStream.getAudioTracks()[0];
-  if (!track) return;
-  track.enabled = !track.enabled;
-  micBtn.textContent = track.enabled ? '🎤 Mic ON' : '🔇 Mic OFF';
-  micBtn.classList.toggle('off', !track.enabled);
+  if (!micGainNode) return;
+  const isMuting = micGainNode.gain.value > 0;
+  if (isMuting) {
+    micGainBeforeMute = micGainNode.gain.value;
+    micGainNode.gain.value = 0;
+    micBtn.textContent = '🔇 Mic OFF';
+    micBtn.classList.add('off');
+  } else {
+    micGainNode.gain.value = micGainBeforeMute || (micVolSlider.value / 100);
+    micBtn.textContent = '🎤 Mic ON';
+    micBtn.classList.remove('off');
+  }
 });
 
 camBtn.addEventListener('click', () => {
@@ -385,11 +680,85 @@ camBtn.addEventListener('click', () => {
   camBtn.classList.toggle('off', !track.enabled);
 });
 
+/* Share the screen (and desktop audio, where the browser/OS supports it)
+   instead of the camera. The screen's video track replaces the camera
+   track on every active student connection; if desktop audio is granted,
+   it becomes the second mixer channel alongside the mic. */
+let isScreenSharing = false;
+let screenStream = null;
+let cameraTrackBackup = null;
+
+shareScreenBtn.addEventListener('click', async () => {
+  if (!localStream) return;
+  if (isScreenSharing) { stopScreenShare(); return; }
+
+  try {
+    screenStream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: true,
+      systemAudio: 'include' // hints Chrome/Edge to include desktop audio, not just tab audio — ignored where unsupported
+    });
+  } catch (err) {
+    showStatus('Screen share was cancelled or blocked.', true);
+    return;
+  }
+
+  const screenVideoTrack = screenStream.getVideoTracks()[0];
+  const screenAudioTrack = screenStream.getAudioTracks()[0]; // not always available — depends on browser/OS
+
+  cameraTrackBackup = localStream.getVideoTracks()[0];
+  if (cameraTrackBackup) localStream.removeTrack(cameraTrackBackup); // kept alive in background, not stopped
+  localStream.addTrack(screenVideoTrack);
+  localVideo.srcObject = localStream;
+
+  connectedCalls.forEach(call => {
+    const pc = call.peerConnection;
+    if (!pc) return;
+    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+    if (sender) sender.replaceTrack(screenVideoTrack);
+  });
+
+  if (screenAudioTrack) {
+    addDesktopAudioSource(new MediaStream([screenAudioTrack]));
+    showStatus('Sharing your screen with desktop audio.', false);
+  } else {
+    showStatus('Sharing your screen (no system audio was available from your browser/OS).', false);
+  }
+
+  screenVideoTrack.addEventListener('ended', stopScreenShare); // fires if they use the browser's native "Stop sharing" bar
+  isScreenSharing = true;
+  shareScreenBtn.textContent = '🖥️ Stop Sharing';
+  shareScreenBtn.classList.add('off');
+});
+
+function stopScreenShare() {
+  if (!isScreenSharing) return;
+  const screenVideoTrack = localStream.getVideoTracks()[0];
+  if (screenVideoTrack) { localStream.removeTrack(screenVideoTrack); screenVideoTrack.stop(); }
+  if (cameraTrackBackup) localStream.addTrack(cameraTrackBackup);
+  localVideo.srcObject = localStream;
+
+  connectedCalls.forEach(call => {
+    const pc = call.peerConnection;
+    if (!pc) return;
+    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+    if (sender && cameraTrackBackup) sender.replaceTrack(cameraTrackBackup);
+  });
+
+  removeDesktopAudioSource();
+  if (screenStream) { screenStream.getAudioTracks().forEach(t => t.stop()); screenStream = null; }
+  isScreenSharing = false;
+  shareScreenBtn.textContent = '🖥️ Share Screen';
+  shareScreenBtn.classList.remove('off');
+  showStatus('Back to your camera.', false);
+}
+
 /* Change broadcast resolution while already live — grabs a fresh camera
    stream at the new resolution and swaps the video track into every
    active student connection, without needing to restart the broadcast. */
 qualitySelect.addEventListener('change', async () => {
   if (!localStream || !peer) return; // not live yet — the new value just applies next time Start is pressed
+  if (isScreenSharing) { showStatus('Stop sharing your screen first to change camera quality.', true); return; }
   const chosenQuality = QUALITY_MAP[qualitySelect.value] || QUALITY_MAP['720'];
   showStatus('Switching live quality to ' + qualitySelect.value + 'p...', false);
   try {
@@ -431,10 +800,13 @@ stopBtn.addEventListener('click', () => {
   connectedCalls.forEach(c => c.close());
   connectedCalls = [];
   studentCount = 0;
+  if (isScreenSharing) stopScreenShare();
+  teardownAudioEngine();
   if (localStream) localStream.getTracks().forEach(t => t.stop());
   if (peer) peer.destroy();
   localVideo.style.display = 'none';
   mediaControls.style.display = 'none';
+  shareScreenBtn.style.display = 'none';
   micBtn.textContent = '🎤 Mic ON'; micBtn.classList.remove('off');
   camBtn.textContent = '📷 Camera ON'; camBtn.classList.remove('off');
   stopBtn.style.display = 'none';
