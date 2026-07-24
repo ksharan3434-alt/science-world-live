@@ -159,6 +159,11 @@
             <option value="1080">1080p (HD — needs strong internet)</option>
           </select>
           <p class="hint" style="margin-top:-10px;">You can change this anytime, even while you're live.</p>
+
+          <label>Your Internet Upload Speed (Mbps)</label>
+          <input type="text" id="uploadMbpsInput" value="30" inputmode="decimal">
+          <p class="hint" style="margin-top:-10px;">Students on "Auto" quality automatically share this — so 10-15 students won't overload your connection and lag. Set it to your real upload speed (check on fast.com). You can change this anytime, even while live.</p>
+
           <button class="btn-primary" id="startBtn">Start Camera</button>
         </div>
 
@@ -321,6 +326,7 @@ const mediaControls = document.getElementById('mediaControls');
 const micBtn = document.getElementById('micBtn');
 const camBtn = document.getElementById('camBtn');
 const qualitySelect = document.getElementById('qualitySelect');
+const uploadMbpsInput = document.getElementById('uploadMbpsInput');
 const shareScreenBtn = document.getElementById('shareScreenBtn');
 
 const mixerCard = document.getElementById('mixerCard');
@@ -352,29 +358,81 @@ function showStatus(msg, isError){ statusBox.textContent = msg; statusBox.classL
 function updateCount(){ studentCountEl.textContent = studentCount; }
 function buildStudentLink(){ return window.location.href.replace(/admin\.html.*$/, 'student.html'); }
 
-/* A student can pick "Low/Medium" from their own player if their internet is
-   slow. We don't run a media server, but WebRTC lets us set a lower
-   resolution/bitrate on that ONE student's connection specifically — other
-   students keep watching at full quality. */
+/* A student can pick "Low/Medium/High" from their own player if their internet is
+   slow, or leave it on "Auto" (the default for everyone who never touches it).
+   These fixed presets always get exactly what they ask for. Framerate caps are
+   included because a choppy/stuttery feel usually comes from dropped frames,
+   not just resolution — capping fps lets the encoder spend its bitrate budget
+   on staying smooth instead of fighting to hit a framerate it can't afford. */
 const STUDENT_QUALITY_MAP = {
-  low:    { scaleResolutionDownBy: 4, maxBitrate: 250000 },
-  medium: { scaleResolutionDownBy: 2, maxBitrate: 600000 },
-  high:   { scaleResolutionDownBy: 1, maxBitrate: 2500000 },
-  auto:   { scaleResolutionDownBy: 1, maxBitrate: 2500000 }
+  low:    { scaleResolutionDownBy: 4, maxBitrate: 200000, maxFramerate: 15 },
+  medium: { scaleResolutionDownBy: 2, maxBitrate: 500000, maxFramerate: 20 },
+  high:   { scaleResolutionDownBy: 1, maxBitrate: 2200000, maxFramerate: 30 }
 };
+
+const AUDIO_RESERVE_BPS = 40000; // ~opus audio per student, reserved off the top so video budget is realistic
+
+/* "Auto" no longer means a fixed 2.5 Mbps for everyone — with 10-15 students
+   that alone can exceed a 30-40 Mbps upload and make every single student lag.
+   Instead, "Auto" students share whatever upload budget is left after
+   subtracting students who manually picked Low/Medium/High and audio for
+   everyone, split evenly, and automatically recalculated every time someone
+   joins or leaves. */
+function computeAutoConfig() {
+  const totalMbps = parseFloat(uploadMbpsInput.value) || 30;
+  const totalBudgetBps = totalMbps * 1000000 * 0.7; // 30% headroom — safer margin so real-world jitter/TURN overhead doesn't cause stutter
+
+  const autoCalls = connectedCalls.filter(c => (c._qualityPref || 'auto') === 'auto');
+  const manualCalls = connectedCalls.filter(c => c._qualityPref && STUDENT_QUALITY_MAP[c._qualityPref]);
+  const manualUsedBps = manualCalls.reduce((sum, c) => sum + STUDENT_QUALITY_MAP[c._qualityPref].maxBitrate, 0);
+  const audioUsedBps = connectedCalls.length * AUDIO_RESERVE_BPS;
+
+  const autoCount = Math.max(1, autoCalls.length);
+  const minPerStudent = 120000; // floor so video doesn't fully break with a lot of students
+  const remainingBps = Math.max(totalBudgetBps - manualUsedBps - audioUsedBps, minPerStudent * autoCount);
+
+  let perStudentBps = remainingBps / autoCount;
+  perStudentBps = Math.min(perStudentBps, 2200000); // never exceed the "High" preset
+  perStudentBps = Math.max(perStudentBps, minPerStudent);
+
+  let scaleDown = 1, fps = 30;
+  if (perStudentBps < 250000)      { scaleDown = 4; fps = 12; }
+  else if (perStudentBps < 400000) { scaleDown = 3; fps = 15; }
+  else if (perStudentBps < 700000) { scaleDown = 3; fps = 20; }
+  else if (perStudentBps < 1200000){ scaleDown = 2; fps = 24; }
+  else if (perStudentBps < 1800000){ scaleDown = 1; fps = 24; }
+
+  return { scaleResolutionDownBy: scaleDown, maxBitrate: Math.round(perStudentBps), maxFramerate: fps };
+}
 
 function applyQualityToCall(call, pref) {
   const pc = call.peerConnection;
   if (!pc) return;
   const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
   if (!sender) return;
-  const cfg = STUDENT_QUALITY_MAP[pref] || STUDENT_QUALITY_MAP.auto;
+  call._qualityPref = pref;
+  const cfg = STUDENT_QUALITY_MAP[pref] || computeAutoConfig();
   const params = sender.getParameters();
   if (!params.encodings || !params.encodings.length) params.encodings = [{}];
   params.encodings[0].scaleResolutionDownBy = cfg.scaleResolutionDownBy;
   params.encodings[0].maxBitrate = cfg.maxBitrate;
+  params.encodings[0].maxFramerate = cfg.maxFramerate;
+  // When bandwidth gets tight, drop resolution/detail first and keep motion smooth —
+  // that reads as "a bit blurry" instead of "laggy/frozen", which feels much better live.
+  params.degradationPreference = 'maintain-framerate';
   sender.setParameters(params).catch(() => {});
 }
+
+/* Re-splits the shared "Auto" budget across everyone currently on Auto —
+   call this any time the connected student count changes. */
+function rebalanceAutoStudents() {
+  connectedCalls.forEach(call => {
+    if ((call._qualityPref || 'auto') === 'auto') applyQualityToCall(call, 'auto');
+  });
+}
+uploadMbpsInput.addEventListener('change', rebalanceAutoStudents);
+setInterval(rebalanceAutoStudents, 15000); // keeps the split correct even if left running for a while
+
 
 /* ===== Audio Mixer (Web Audio API) =====
    Everything students hear is routed through this graph so the teacher can
@@ -625,6 +683,7 @@ startBtn.addEventListener('click', async () => {
     connectedCalls.push(call);
     studentCount++;
     updateCount();
+    rebalanceAutoStudents(); // a new student joined — reshare the upload budget among everyone on Auto
 
     const meta = call.metadata || {};
     let unsubQuality = null;
@@ -633,6 +692,7 @@ startBtn.addEventListener('click', async () => {
         .onSnapshot(doc => {
           const pref = doc.exists ? (doc.data().qualityPref || 'auto') : 'auto';
           applyQualityToCall(call, pref);
+          rebalanceAutoStudents(); // this student's choice changes what's left for everyone else on Auto
         });
     }
 
@@ -641,6 +701,7 @@ startBtn.addEventListener('click', async () => {
       updateCount();
       connectedCalls = connectedCalls.filter(c => c !== call);
       if (unsubQuality) unsubQuality();
+      rebalanceAutoStudents(); // one less student — everyone else on Auto can get a bigger share now
     });
   });
 
