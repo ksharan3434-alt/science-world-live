@@ -13,7 +13,7 @@
     --accent:#2f6f5e; --accent-dark:#204d41; --accent-soft:#e2ede7;
     --danger:#a4402f; --danger-soft:#f6e5e0; --muted:#6b7a75;
     --red:#e0332b; --red-dark:#a41f19; --yellow:#fff3b0; --yellow-line:#e8c93a;
-    --meter-green:#2fae60; --meter-blue:#2f9fd6; --meter-yellow:#e8b23a;
+    --meter-green:#2fae60; --meter-blue:#2f9fd6; --meter-yellow:#e8b23a; --meter-red:#e0332b;
   }
   *{box-sizing:border-box;}
   body{
@@ -76,15 +76,10 @@
 
   /* Chat */
   .chat-list{ height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:12px; padding-right:4px; }
-  .chat-msg{ position:relative; background:var(--accent-soft); border-radius:8px; padding:8px 32px 8px 11px; font-size:0.83rem; line-height:1.4; }
+  .chat-msg{ background:var(--accent-soft); border-radius:8px; padding:8px 11px; font-size:0.83rem; line-height:1.4; }
   .chat-msg.admin{ background:var(--yellow); border:1px solid var(--yellow-line); }
+  .chat-msg.teacher{ background:#dff5e3; border:1px solid #3fae6a; }
   .chat-name{ font-weight:700; color:var(--accent-dark); margin-right:6px; }
-  .chat-msg-del{ position:absolute; top:6px; right:6px; width:20px; height:20px; border-radius:5px; padding:0; display:flex; align-items:center; justify-content:center; background:rgba(164,64,47,0.12); color:var(--danger); font-size:0.72rem; line-height:1; border:none; cursor:pointer; }
-  .chat-msg-del:hover{ background:var(--danger); color:#fff; }
-  .chat-head-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-  .chat-head-row .side-tab{ margin-bottom:0; }
-  .delete-all-chat-btn{ width:auto; padding:6px 12px; font-size:0.74rem; font-weight:700; background:var(--danger-soft); color:var(--danger); border-radius:8px; border:1px solid var(--danger); cursor:pointer; }
-  .delete-all-chat-btn:hover{ background:var(--danger); color:#fff; }
   .chat-input-row{ display:flex; gap:8px; }
   .chat-input-row input{ flex:1; margin-bottom:0; }
   .chat-input-row button{ width:auto; padding:0 16px; background:var(--accent); color:#fff; }
@@ -125,7 +120,9 @@
   .mixer-divider{ height:1.5px; background:#ded6c2; margin:18px 0; }
   .level-meter{ position:relative; height:8px; border-radius:4px; background:#e7e0cc; overflow:hidden; }
   .level-meter-green{ position:absolute; left:0; top:0; height:100%; width:0%; background:var(--meter-green); transition:width 0.05s linear; }
-  .level-meter-blue{ position:absolute; left:50%; top:0; height:100%; width:0%; background:var(--meter-blue); transition:width 0.05s linear; }
+  .level-meter-blue{ position:absolute; left:35%; top:0; height:100%; width:0%; background:var(--meter-blue); transition:width 0.05s linear; }
+  .level-meter-yellow{ position:absolute; left:65%; top:0; height:100%; width:0%; background:var(--meter-yellow); transition:width 0.05s linear; }
+  .level-meter-red{ position:absolute; left:85%; top:0; height:100%; width:0%; background:var(--meter-red); transition:width 0.05s linear; }
   .eq-row{ display:flex; justify-content:space-between; gap:8px; padding:6px 0 4px; }
   .eq-band{ flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; }
   .eq-slider{ -webkit-appearance:slider-vertical; appearance:slider-vertical; width:22px; height:90px; accent-color:var(--accent); cursor:pointer; }
@@ -170,6 +167,12 @@
           <input type="text" id="uploadMbpsInput" value="30" inputmode="decimal">
           <p class="hint" style="margin-top:-10px;">Students on "Auto" quality automatically share this — so 10-15 students won't overload your connection and lag. Set it to your real upload speed (check on fast.com). You can change this anytime, even while live.</p>
 
+          <label style="display:flex; align-items:center; gap:8px; margin-top:14px; cursor:pointer;">
+            <input type="checkbox" id="relayModeCheckbox" style="width:auto;">
+            <span>Broadcast via Relay (send to one relay operator, they distribute to students)</span>
+          </label>
+          <p class="hint" style="margin-top:-6px;">Only turn this on if someone is running the Relay Panel for this class — otherwise students won't see anything. Leave off for normal direct broadcasting.</p>
+
           <button class="btn-primary" id="startBtn">Start Camera</button>
         </div>
 
@@ -187,6 +190,7 @@
           <div class="stat-box"><div class="count" id="studentCount">0</div><div class="count-label">Connected</div></div>
           <div class="live-tag" id="liveTag"><span class="dot"></span> LIVE</div>
         </div>
+        <p class="hint" id="loadHint" style="display:none; margin-top:10px;"></p>
 
         <video id="localVideo" autoplay muted playsinline></video>
 
@@ -195,6 +199,8 @@
           <button class="toggle-btn" id="camBtn">📷 Camera ON</button>
         </div>
         <button class="btn-dark" id="shareScreenBtn" style="display:none; margin-top:10px;">🖥️ Share Screen</button>
+        <button class="btn-dark" id="shareAudioBtn" style="display:none; margin-top:10px;">🔊 Share Tab/Window Sound (Camera Stays On)</button>
+        <button class="btn-dark" id="teacherVideoBtn" style="display:none; margin-top:10px;" disabled>📡 Use Video from Teacher (waiting for teacher...)</button>
 
         <button class="btn-danger" id="stopBtn" style="display:none;">Stop Broadcast</button>
       </div>
@@ -205,13 +211,13 @@
         <div class="mixer-channel">
           <div class="mixer-channel-head"><span>🎤 Mic</span><span id="micVolLabel">100%</span></div>
           <input type="range" id="micVolSlider" min="0" max="200" value="100">
-          <div class="level-meter"><div class="level-meter-green" id="micMeterGreen"></div><div class="level-meter-blue" id="micMeterBlue"></div></div>
+          <div class="level-meter"><div class="level-meter-green" id="micMeterGreen"></div><div class="level-meter-blue" id="micMeterBlue"></div><div class="level-meter-yellow" id="micMeterYellow"></div><div class="level-meter-red" id="micMeterRed"></div></div>
         </div>
 
         <div class="mixer-channel" id="desktopChannelRow" style="display:none;">
           <div class="mixer-channel-head"><span>🖥️ Desktop Audio</span><span id="desktopVolLabel">100%</span></div>
           <input type="range" id="desktopVolSlider" min="0" max="200" value="100">
-          <div class="level-meter"><div class="level-meter-green" id="desktopMeterGreen"></div><div class="level-meter-blue" id="desktopMeterBlue"></div></div>
+          <div class="level-meter"><div class="level-meter-green" id="desktopMeterGreen"></div><div class="level-meter-blue" id="desktopMeterBlue"></div><div class="level-meter-yellow" id="desktopMeterYellow"></div><div class="level-meter-red" id="desktopMeterRed"></div></div>
         </div>
 
         <div class="mixer-divider"></div>
@@ -242,7 +248,7 @@
         <div class="mixer-channel">
           <div class="mixer-channel-head"><span>🔊 Master Volume</span><span id="masterVolLabel">100%</span></div>
           <input type="range" id="masterVolSlider" min="0" max="150" value="100">
-          <div class="level-meter"><div class="level-meter-green" id="masterMeterGreen"></div><div class="level-meter-blue" id="masterMeterBlue"></div></div>
+          <div class="level-meter"><div class="level-meter-green" id="masterMeterGreen"></div><div class="level-meter-blue" id="masterMeterBlue"></div><div class="level-meter-yellow" id="masterMeterYellow"></div><div class="level-meter-red" id="masterMeterRed"></div></div>
         </div>
 
         <p class="students-note">This is what students hear. Boost helps a quiet mic but can distort — a limiter runs automatically to soften harsh clipping. Desktop Audio only appears once you share your screen with sound.</p>
@@ -279,10 +285,7 @@
       </div>
 
       <div class="card">
-        <div class="chat-head-row">
-          <div class="side-tab">💬 Chat</div>
-          <button type="button" class="delete-all-chat-btn" id="deleteAllChatBtn">🗑 Delete All</button>
-        </div>
+        <div class="side-tab">💬 Chat</div>
         <div class="chat-list" id="chatList"></div>
         <div class="chat-input-row">
           <input type="text" id="chatInput" placeholder="Type a message..." maxlength="50">
@@ -319,12 +322,16 @@ let peer = null;
 let localStream = null;
 let connectedCalls = [];
 let studentCount = 0;
+let teacherStream = null;   // the real teacher's camera+mic, received once via peer.on('call')
+let teacherCall = null;
+let usingTeacherFeed = false;
 
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const statusBox = document.getElementById('statusBox');
 const localVideo = document.getElementById('localVideo');
 const statRow = document.getElementById('statRow');
+const loadHint = document.getElementById('loadHint');
 const studentCountEl = document.getElementById('studentCount');
 const setupBlock = document.getElementById('setupBlock');
 const linkBox = document.getElementById('linkBox');
@@ -336,18 +343,25 @@ const micBtn = document.getElementById('micBtn');
 const camBtn = document.getElementById('camBtn');
 const qualitySelect = document.getElementById('qualitySelect');
 const uploadMbpsInput = document.getElementById('uploadMbpsInput');
+const relayModeCheckbox = document.getElementById('relayModeCheckbox');
 const shareScreenBtn = document.getElementById('shareScreenBtn');
+const shareAudioBtn = document.getElementById('shareAudioBtn');
+const teacherVideoBtn = document.getElementById('teacherVideoBtn');
 
 const mixerCard = document.getElementById('mixerCard');
 const micVolSlider = document.getElementById('micVolSlider');
 const micVolLabel = document.getElementById('micVolLabel');
 const micMeterGreen = document.getElementById('micMeterGreen');
 const micMeterBlue = document.getElementById('micMeterBlue');
+const micMeterYellow = document.getElementById('micMeterYellow');
+const micMeterRed = document.getElementById('micMeterRed');
 const desktopChannelRow = document.getElementById('desktopChannelRow');
 const desktopVolSlider = document.getElementById('desktopVolSlider');
 const desktopVolLabel = document.getElementById('desktopVolLabel');
 const desktopMeterGreen = document.getElementById('desktopMeterGreen');
 const desktopMeterBlue = document.getElementById('desktopMeterBlue');
+const desktopMeterYellow = document.getElementById('desktopMeterYellow');
+const desktopMeterRed = document.getElementById('desktopMeterRed');
 const eqSliders = Array.from(document.querySelectorAll('.eq-slider'));
 const eqResetBtn = document.getElementById('eqResetBtn');
 const boostSlider = document.getElementById('boostSlider');
@@ -356,6 +370,8 @@ const masterVolSlider = document.getElementById('masterVolSlider');
 const masterVolLabel = document.getElementById('masterVolLabel');
 const masterMeterGreen = document.getElementById('masterMeterGreen');
 const masterMeterBlue = document.getElementById('masterMeterBlue');
+const masterMeterYellow = document.getElementById('masterMeterYellow');
+const masterMeterRed = document.getElementById('masterMeterRed');
 
 const QUALITY_MAP = {
   '480': { width: { ideal: 854 }, height: { ideal: 480 } },
@@ -364,7 +380,18 @@ const QUALITY_MAP = {
 };
 
 function showStatus(msg, isError){ statusBox.textContent = msg; statusBox.classList.add('show'); statusBox.classList.toggle('err', !!isError); }
-function updateCount(){ studentCountEl.textContent = studentCount; }
+function updateCount(){
+  studentCountEl.textContent = studentCount;
+  if (studentCount >= 10) {
+    loadHint.textContent = 'Auto quality has been reduced to protect smoothness with ' + studentCount + ' students — your device is now encoding video separately for each one, which is real CPU work, not just internet speed. If it still stutters, that\u2019s your device\u2019s limit, not the connection.';
+    loadHint.style.display = 'block';
+  } else if (studentCount >= 5) {
+    loadHint.textContent = studentCount + ' students connected — quality auto-adjusts to keep things smooth.';
+    loadHint.style.display = 'block';
+  } else {
+    loadHint.style.display = 'none';
+  }
+}
 function buildStudentLink(){ return window.location.href.replace(/admin\.html.*$/, 'student.html'); }
 
 /* A student can pick "Low/Medium/High" from their own player if their internet is
@@ -432,9 +459,33 @@ function applyQualityToCall(call, pref) {
   sender.setParameters(params).catch(() => {});
 }
 
-/* Re-splits the shared "Auto" budget across everyone currently on Auto —
-   call this any time the connected student count changes. */
+/* Bandwidth wasn't the only bottleneck: in this P2P setup, the teacher's
+   device has to separately ENCODE the camera video once per connected
+   student (there's no media server doing that work). With 10-15 students,
+   that's 10-15 simultaneous video encodes running on one device — on a
+   modest laptop/phone, THAT is usually what actually causes stutter, even
+   with bitrate perfectly capped. So above a few students, we also shrink
+   the camera's own captured resolution/framerate — a smaller source frame
+   is cheaper to encode 15 times over than a large one. */
+function applySourceLoadScaling() {
+  if (!localStream) return;
+  const videoTrack = localStream.getVideoTracks()[0];
+  if (!videoTrack) return;
+  const n = connectedCalls.length;
+  let constraints;
+  if (n >= 10) constraints = { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 20, max: 20 } };
+  else if (n >= 5) constraints = { width: { ideal: 854 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 24 } };
+  else {
+    const chosenQuality = QUALITY_MAP[qualitySelect.value] || QUALITY_MAP['720'];
+    constraints = { ...chosenQuality, frameRate: { ideal: 30 } };
+  }
+  videoTrack.applyConstraints(constraints).catch(() => {});
+}
+
+/* Re-splits the shared "Auto" budget across everyone currently on Auto, and
+   re-checks the source load scaling — call any time the connected count changes. */
 function rebalanceAutoStudents() {
+  applySourceLoadScaling();
   connectedCalls.forEach(call => {
     if ((call._qualityPref || 'auto') === 'auto') applyQualityToCall(call, 'auto');
   });
@@ -538,7 +589,7 @@ function removeDesktopAudioSource() {
   if (desktopSourceNode) { try { desktopSourceNode.disconnect(); } catch (e) {} desktopSourceNode = null; }
   if (desktopGainNode) { try { desktopGainNode.disconnect(); } catch (e) {} }
   desktopChannelRow.style.display = 'none';
-  desktopMeterGreen.style.width = '0%'; desktopMeterBlue.style.width = '0%';
+  desktopMeterGreen.style.width = '0%'; desktopMeterBlue.style.width = '0%'; desktopMeterYellow.style.width = '0%'; desktopMeterRed.style.width = '0%';
 }
 
 function teardownAudioEngine() {
@@ -551,9 +602,9 @@ function teardownAudioEngine() {
   micAnalyser = null; desktopAnalyser = null; masterAnalyser = null; destinationNode = null;
   mixerCard.style.display = 'none';
   desktopChannelRow.style.display = 'none';
-  micMeterGreen.style.width = '0%'; micMeterBlue.style.width = '0%';
-  desktopMeterGreen.style.width = '0%'; desktopMeterBlue.style.width = '0%';
-  masterMeterGreen.style.width = '0%'; masterMeterBlue.style.width = '0%';
+  micMeterGreen.style.width = '0%'; micMeterBlue.style.width = '0%'; micMeterYellow.style.width = '0%'; micMeterRed.style.width = '0%';
+  desktopMeterGreen.style.width = '0%'; desktopMeterBlue.style.width = '0%'; desktopMeterYellow.style.width = '0%'; desktopMeterRed.style.width = '0%';
+  masterMeterGreen.style.width = '0%'; masterMeterBlue.style.width = '0%'; masterMeterYellow.style.width = '0%'; masterMeterRed.style.width = '0%';
 }
 
 function levelFromAnalyser(analyser, buf) {
@@ -563,14 +614,21 @@ function levelFromAnalyser(analyser, buf) {
   return Math.sqrt(sum / buf.length);
 }
 
-const METER_GREEN_CAP = 50; // green zone is fixed up to this point; it never changes color
+const METER_GREEN_CAP = 35;  // green zone — made smaller than before
+const METER_BLUE_CAP = 65;   // blue zone — normal healthy level
+const METER_YELLOW_CAP = 85; // yellow zone — getting loud
+                              // above that is red — too loud / near clipping
 
-function setMeter(elGreen, elBlue, level) {
+function setMeter(elGreen, elBlue, elYellow, elRed, level) {
   const pct = Math.min(100, Math.round(level * 220)); // scaled up — typical speech RMS is fairly low
   const greenPct = Math.min(pct, METER_GREEN_CAP);
-  const bluePct = Math.max(0, pct - METER_GREEN_CAP);
+  const bluePct = Math.max(0, Math.min(pct, METER_BLUE_CAP) - METER_GREEN_CAP);
+  const yellowPct = Math.max(0, Math.min(pct, METER_YELLOW_CAP) - METER_BLUE_CAP);
+  const redPct = Math.max(0, pct - METER_YELLOW_CAP);
   elGreen.style.width = greenPct + '%';
   elBlue.style.width = bluePct + '%';
+  elYellow.style.width = yellowPct + '%';
+  elRed.style.width = redPct + '%';
 }
 
 function startMeterLoop() {
@@ -582,9 +640,9 @@ function startMeterLoop() {
 
   function loop() {
     if (!meterLoopRunning || !audioCtx) return;
-    setMeter(micMeterGreen, micMeterBlue, levelFromAnalyser(micAnalyser, micBuf));
-    setMeter(desktopMeterGreen, desktopMeterBlue, desktopSourceNode ? levelFromAnalyser(desktopAnalyser, desktopBuf) : 0);
-    setMeter(masterMeterGreen, masterMeterBlue, levelFromAnalyser(masterAnalyser, masterBuf));
+    setMeter(micMeterGreen, micMeterBlue, micMeterYellow, micMeterRed, levelFromAnalyser(micAnalyser, micBuf));
+    setMeter(desktopMeterGreen, desktopMeterBlue, desktopMeterYellow, desktopMeterRed, desktopSourceNode ? levelFromAnalyser(desktopAnalyser, desktopBuf) : 0);
+    setMeter(masterMeterGreen, masterMeterBlue, masterMeterYellow, masterMeterRed, levelFromAnalyser(masterAnalyser, masterBuf));
     requestAnimationFrame(loop);
   }
   loop();
@@ -652,6 +710,7 @@ const iceConfig = {
 
 startBtn.addEventListener('click', async () => {
   const roomId = ROOM_ID;
+  const broadcastId = relayModeCheckbox.checked ? (roomId + '-teacher') : roomId;
   startBtn.disabled = true;
   showStatus('Requesting camera access...', false);
 
@@ -671,16 +730,20 @@ startBtn.addEventListener('click', async () => {
     return;
   }
 
-  peer = new Peer(roomId, { debug: 1, config: iceConfig });
+  peer = new Peer(broadcastId, { debug: 1, config: iceConfig });
 
   peer.on('open', (id) => {
-    showStatus("You're live! Send the link below to students.", false);
+    showStatus(relayModeCheckbox.checked
+      ? "You're live — sending to the relay operator now."
+      : "You're live! Send the link below to students.", false);
     setupBlock.style.display = 'none';
     stopBtn.style.display = 'block';
     statRow.style.display = 'flex';
     liveTag.classList.add('show');
     mediaControls.style.display = 'flex';
     shareScreenBtn.style.display = 'block';
+    shareAudioBtn.style.display = 'block';
+    teacherVideoBtn.style.display = 'block';
 
     const link = buildStudentLink();
     shareLinkInput.value = link;
@@ -688,13 +751,36 @@ startBtn.addEventListener('click', async () => {
   });
 
   peer.on('call', (call) => {
+    const meta = call.metadata || {};
+
+    /* This one isn't a student — it's the real teacher's simple panel,
+       sending their camera to us once. We don't need to send them
+       anything meaningful back, just receive their stream. */
+    if (meta.type === 'teacher-feed') {
+      call.answer(createSilentPlaceholderStream());
+      teacherCall = call;
+      call.on('stream', (stream) => {
+        teacherStream = stream;
+        teacherVideoBtn.disabled = false;
+        teacherVideoBtn.textContent = '📡 Use Video from Teacher';
+        showStatus('Teacher\u2019s camera is ready — click "Use Video from Teacher" to broadcast it.', false);
+      });
+      call.on('close', () => {
+        teacherStream = null;
+        teacherCall = null;
+        teacherVideoBtn.disabled = true;
+        teacherVideoBtn.textContent = '📡 Use Video from Teacher (waiting for teacher...)';
+        if (usingTeacherFeed) switchToOwnCamera();
+      });
+      return;
+    }
+
     call.answer(localStream);
     connectedCalls.push(call);
     studentCount++;
     updateCount();
     rebalanceAutoStudents(); // a new student joined — reshare the upload budget among everyone on Auto
 
-    const meta = call.metadata || {};
     let unsubQuality = null;
     if (meta.clientId) {
       unsubQuality = db.collection('rooms').doc(ROOM_ID).collection('students').doc(meta.clientId)
@@ -757,10 +843,105 @@ camBtn.addEventListener('click', () => {
 let isScreenSharing = false;
 let screenStream = null;
 let cameraTrackBackup = null;
+let isAudioOnlySharing = false;
+let audioOnlyStream = null;
+
+/* Screen share needs very different treatment from camera video: text/UI
+   detail matters far more than smooth motion, and it doesn't need much
+   framerate. Re-using the heavily-downscaled "many students" camera config
+   here made shared screens blurry/unreadable. This keeps full resolution
+   and gives it a generous bitrate, capped on framerate instead. */
+function applyScreenShareQuality() {
+  connectedCalls.forEach(call => {
+    const pc = call.peerConnection;
+    if (!pc) return;
+    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+    if (!sender) return;
+    const params = sender.getParameters();
+    if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+    params.encodings[0].scaleResolutionDownBy = 1;
+    params.encodings[0].maxBitrate = 2000000;
+    params.encodings[0].maxFramerate = 10;
+    params.degradationPreference = 'maintain-resolution';
+    sender.setParameters(params).catch(() => {});
+  });
+}
+
+/* Used only to answer the teacher's incoming call — we don't need to send
+   them anything real back, just receive their camera. */
+function createSilentPlaceholderStream() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const silentSource = ctx.createConstantSource();
+  silentSource.offset.value = 0;
+  const dst = ctx.createMediaStreamDestination();
+  silentSource.connect(dst);
+  silentSource.start();
+  const audioTrack = dst.stream.getAudioTracks()[0];
+  const canvas = document.createElement('canvas');
+  canvas.width = 2; canvas.height = 2;
+  canvas.getContext('2d').fillRect(0, 0, 2, 2);
+  const videoTrack = canvas.captureStream(1).getVideoTracks()[0];
+  return new MediaStream([audioTrack, videoTrack]);
+}
+
+/* Swaps every connected student's video+audio to the teacher's incoming
+   feed instead of our own camera/mic — a clean handoff, not a mix. */
+function switchToTeacherFeed() {
+  if (!teacherStream) return;
+  if (isScreenSharing) { showStatus('Stop screen sharing first, then switch to the teacher\u2019s video.', true); return; }
+
+  const teacherVideoTrack = teacherStream.getVideoTracks()[0];
+  const teacherAudioTrack = teacherStream.getAudioTracks()[0];
+  if (!teacherVideoTrack) return;
+
+  connectedCalls.forEach(call => {
+    const pc = call.peerConnection;
+    if (!pc) return;
+    pc.getSenders().forEach(sender => {
+      if (sender.track && sender.track.kind === 'video') sender.replaceTrack(teacherVideoTrack);
+      if (sender.track && sender.track.kind === 'audio' && teacherAudioTrack) sender.replaceTrack(teacherAudioTrack);
+    });
+  });
+  localVideo.srcObject = teacherStream;
+  rebalanceAutoStudents();
+
+  usingTeacherFeed = true;
+  teacherVideoBtn.textContent = '📷 Switch Back to My Camera';
+  showStatus('Now broadcasting the teacher\u2019s camera and mic.', false);
+}
+
+function switchToOwnCamera() {
+  if (!usingTeacherFeed || !localStream) return;
+  const ownVideoTrack = localStream.getVideoTracks()[0];
+  const ownAudioTrack = localStream.getAudioTracks()[0];
+
+  connectedCalls.forEach(call => {
+    const pc = call.peerConnection;
+    if (!pc) return;
+    pc.getSenders().forEach(sender => {
+      if (sender.track && sender.track.kind === 'video' && ownVideoTrack) sender.replaceTrack(ownVideoTrack);
+      if (sender.track && sender.track.kind === 'audio' && ownAudioTrack) sender.replaceTrack(ownAudioTrack);
+    });
+  });
+  localVideo.srcObject = localStream;
+  connectedCalls.forEach(call => applyQualityToCall(call, call._qualityPref || 'auto'));
+  applySourceLoadScaling();
+
+  usingTeacherFeed = false;
+  teacherVideoBtn.textContent = teacherStream ? '📡 Use Video from Teacher' : '📡 Use Video from Teacher (waiting for teacher...)';
+  showStatus('Back to your own camera.', false);
+}
+
+teacherVideoBtn.addEventListener('click', () => {
+  if (usingTeacherFeed) switchToOwnCamera();
+  else switchToTeacherFeed();
+});
 
 shareScreenBtn.addEventListener('click', async () => {
   if (!localStream) return;
   if (isScreenSharing) { stopScreenShare(); return; }
+  if (usingTeacherFeed) { showStatus('Switch back to your own camera first, then share your screen.', true); return; }
+  if (isAudioOnlySharing) stopAudioOnlyShare(); // screen share brings its own audio — don't run both at once
 
   try {
     screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -774,6 +955,7 @@ shareScreenBtn.addEventListener('click', async () => {
   }
 
   const screenVideoTrack = screenStream.getVideoTracks()[0];
+  screenVideoTrack.contentHint = 'detail';
   const screenAudioTrack = screenStream.getAudioTracks()[0]; // not always available — depends on browser/OS
 
   cameraTrackBackup = localStream.getVideoTracks()[0];
@@ -787,6 +969,7 @@ shareScreenBtn.addEventListener('click', async () => {
     const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
     if (sender) sender.replaceTrack(screenVideoTrack);
   });
+  applyScreenShareQuality();
 
   if (screenAudioTrack) {
     addDesktopAudioSource(new MediaStream([screenAudioTrack]));
@@ -814,6 +997,8 @@ function stopScreenShare() {
     const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
     if (sender && cameraTrackBackup) sender.replaceTrack(cameraTrackBackup);
   });
+  connectedCalls.forEach(call => applyQualityToCall(call, call._qualityPref || 'auto'));
+  applySourceLoadScaling();
 
   removeDesktopAudioSource();
   if (screenStream) { screenStream.getAudioTracks().forEach(t => t.stop()); screenStream = null; }
@@ -821,6 +1006,49 @@ function stopScreenShare() {
   shareScreenBtn.textContent = '🖥️ Share Screen';
   shareScreenBtn.classList.remove('off');
   showStatus('Back to your camera.', false);
+}
+
+/* "Play a video/audio and let students hear it, but keep showing MY camera"
+   — picks a window/tab like screen share does (the browser requires a video
+   selection for this), but immediately discards that video track and only
+   keeps the audio, mixed in with the mic. The camera keeps broadcasting
+   untouched the whole time. */
+shareAudioBtn.addEventListener('click', async () => {
+  if (!localStream || !audioCtx) return;
+  if (isAudioOnlySharing) { stopAudioOnlyShare(); return; }
+  if (isScreenSharing) { showStatus('Screen share already sends its own audio — stop it first to pick a different audio source.', true); return; }
+
+  try {
+    audioOnlyStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true, systemAudio: 'include' });
+  } catch (err) {
+    showStatus('Audio share was cancelled or blocked.', true);
+    return;
+  }
+
+  audioOnlyStream.getVideoTracks().forEach(t => t.stop()); // only wanted the audio — camera keeps showing as normal
+  const audioTrack = audioOnlyStream.getAudioTracks()[0];
+  if (!audioTrack) {
+    showStatus('That window/tab had no audio to share — when picking it, make sure "Share tab/system audio" is ticked.', true);
+    audioOnlyStream = null;
+    return;
+  }
+
+  addDesktopAudioSource(new MediaStream([audioTrack]));
+  audioTrack.addEventListener('ended', stopAudioOnlyShare); // fires if they use the browser's native "Stop sharing" bar
+  isAudioOnlySharing = true;
+  shareAudioBtn.textContent = '🔊 Stop Sharing Sound';
+  shareAudioBtn.classList.add('off');
+  showStatus('Sharing that window\u2019s sound — your camera keeps showing as normal.', false);
+});
+
+function stopAudioOnlyShare() {
+  if (!isAudioOnlySharing) return;
+  removeDesktopAudioSource();
+  if (audioOnlyStream) { audioOnlyStream.getTracks().forEach(t => t.stop()); audioOnlyStream = null; }
+  isAudioOnlySharing = false;
+  shareAudioBtn.textContent = '🔊 Share Tab/Window Sound (Camera Stays On)';
+  shareAudioBtn.classList.remove('off');
+  showStatus('Stopped sharing that sound.', false);
 }
 
 /* Change broadcast resolution while already live — grabs a fresh camera
@@ -871,12 +1099,17 @@ stopBtn.addEventListener('click', () => {
   connectedCalls = [];
   studentCount = 0;
   if (isScreenSharing) stopScreenShare();
+  if (isAudioOnlySharing) stopAudioOnlyShare();
   teardownAudioEngine();
   if (localStream) localStream.getTracks().forEach(t => t.stop());
   if (peer) peer.destroy();
   localVideo.style.display = 'none';
   mediaControls.style.display = 'none';
   shareScreenBtn.style.display = 'none';
+  shareAudioBtn.style.display = 'none';
+  teacherVideoBtn.style.display = 'none';
+  teacherVideoBtn.disabled = true;
+  teacherStream = null; teacherCall = null; usingTeacherFeed = false;
   micBtn.textContent = '🎤 Mic ON'; micBtn.classList.remove('off');
   camBtn.textContent = '📷 Camera ON'; camBtn.classList.remove('off');
   stopBtn.style.display = 'none';
@@ -893,7 +1126,6 @@ const chatList = document.getElementById('chatList');
 const chatInput = document.getElementById('chatInput');
 const chatSendBtn = document.getElementById('chatSendBtn');
 const charCounter = document.getElementById('charCounter');
-const deleteAllChatBtn = document.getElementById('deleteAllChatBtn');
 
 chatInput.addEventListener('input', () => {
   const len = chatInput.value.length;
@@ -907,44 +1139,13 @@ function listenChat() {
     snap.forEach(doc => {
       const m = doc.data();
       const div = document.createElement('div');
-      div.className = 'chat-msg' + (m.isAdmin ? ' admin' : '');
-      div.innerHTML = '<span class="chat-name">' + escapeHtml(m.name || 'Student') + '</span>' + escapeHtml(m.text || '') +
-        '<button type="button" class="chat-msg-del" data-id="' + doc.id + '" title="Delete this message">✕</button>';
+      div.className = 'chat-msg' + (m.isAdmin ? ' admin' : '') + (m.isTeacherPanel ? ' teacher' : '');
+      div.innerHTML = '<span class="chat-name">' + escapeHtml(m.name || 'Student') + '</span>' + escapeHtml(m.text || '');
       chatList.appendChild(div);
     });
     chatList.scrollTop = chatList.scrollHeight;
   });
 }
-
-// Delete a single message when its ✕ button is clicked (event delegation, since messages re-render live)
-chatList.addEventListener('click', (e) => {
-  const btn = e.target.closest('.chat-msg-del');
-  if (!btn) return;
-  messagesRef().doc(btn.dataset.id).delete();
-});
-
-// Delete every chat message in the room at once
-deleteAllChatBtn.addEventListener('click', () => {
-  if (!confirm('Delete ALL chat messages for everyone? This cannot be undone.')) return;
-  deleteAllChatBtn.disabled = true;
-  deleteAllChatBtn.textContent = 'Deleting...';
-  const clearBatch = () => {
-    messagesRef().limit(400).get().then(snap => {
-      if (snap.empty) {
-        deleteAllChatBtn.disabled = false;
-        deleteAllChatBtn.textContent = '🗑 Delete All';
-        return;
-      }
-      const batch = db.batch();
-      snap.forEach(doc => batch.delete(doc.ref));
-      batch.commit().then(clearBatch); // keep clearing in chunks until nothing is left
-    }).catch(() => {
-      deleteAllChatBtn.disabled = false;
-      deleteAllChatBtn.textContent = '🗑 Delete All';
-    });
-  };
-  clearBatch();
-});
 
 function sendAdminMsg() {
   const text = chatInput.value.trim().slice(0, 50);
