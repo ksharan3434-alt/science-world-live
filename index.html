@@ -76,9 +76,15 @@
 
   /* Chat */
   .chat-list{ height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:12px; padding-right:4px; }
-  .chat-msg{ background:var(--accent-soft); border-radius:8px; padding:8px 11px; font-size:0.83rem; line-height:1.4; }
+  .chat-msg{ position:relative; background:var(--accent-soft); border-radius:8px; padding:8px 32px 8px 11px; font-size:0.83rem; line-height:1.4; }
   .chat-msg.admin{ background:var(--yellow); border:1px solid var(--yellow-line); }
   .chat-name{ font-weight:700; color:var(--accent-dark); margin-right:6px; }
+  .chat-msg-del{ position:absolute; top:6px; right:6px; width:20px; height:20px; border-radius:5px; padding:0; display:flex; align-items:center; justify-content:center; background:rgba(164,64,47,0.12); color:var(--danger); font-size:0.72rem; line-height:1; border:none; cursor:pointer; }
+  .chat-msg-del:hover{ background:var(--danger); color:#fff; }
+  .chat-head-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .chat-head-row .side-tab{ margin-bottom:0; }
+  .delete-all-chat-btn{ width:auto; padding:6px 12px; font-size:0.74rem; font-weight:700; background:var(--danger-soft); color:var(--danger); border-radius:8px; border:1px solid var(--danger); cursor:pointer; }
+  .delete-all-chat-btn:hover{ background:var(--danger); color:#fff; }
   .chat-input-row{ display:flex; gap:8px; }
   .chat-input-row input{ flex:1; margin-bottom:0; }
   .chat-input-row button{ width:auto; padding:0 16px; background:var(--accent); color:#fff; }
@@ -273,7 +279,10 @@
       </div>
 
       <div class="card">
-        <div class="side-tab">💬 Chat</div>
+        <div class="chat-head-row">
+          <div class="side-tab">💬 Chat</div>
+          <button type="button" class="delete-all-chat-btn" id="deleteAllChatBtn">🗑 Delete All</button>
+        </div>
         <div class="chat-list" id="chatList"></div>
         <div class="chat-input-row">
           <input type="text" id="chatInput" placeholder="Type a message..." maxlength="50">
@@ -884,6 +893,7 @@ const chatList = document.getElementById('chatList');
 const chatInput = document.getElementById('chatInput');
 const chatSendBtn = document.getElementById('chatSendBtn');
 const charCounter = document.getElementById('charCounter');
+const deleteAllChatBtn = document.getElementById('deleteAllChatBtn');
 
 chatInput.addEventListener('input', () => {
   const len = chatInput.value.length;
@@ -898,12 +908,43 @@ function listenChat() {
       const m = doc.data();
       const div = document.createElement('div');
       div.className = 'chat-msg' + (m.isAdmin ? ' admin' : '');
-      div.innerHTML = '<span class="chat-name">' + escapeHtml(m.name || 'Student') + '</span>' + escapeHtml(m.text || '');
+      div.innerHTML = '<span class="chat-name">' + escapeHtml(m.name || 'Student') + '</span>' + escapeHtml(m.text || '') +
+        '<button type="button" class="chat-msg-del" data-id="' + doc.id + '" title="Delete this message">✕</button>';
       chatList.appendChild(div);
     });
     chatList.scrollTop = chatList.scrollHeight;
   });
 }
+
+// Delete a single message when its ✕ button is clicked (event delegation, since messages re-render live)
+chatList.addEventListener('click', (e) => {
+  const btn = e.target.closest('.chat-msg-del');
+  if (!btn) return;
+  messagesRef().doc(btn.dataset.id).delete();
+});
+
+// Delete every chat message in the room at once
+deleteAllChatBtn.addEventListener('click', () => {
+  if (!confirm('Delete ALL chat messages for everyone? This cannot be undone.')) return;
+  deleteAllChatBtn.disabled = true;
+  deleteAllChatBtn.textContent = 'Deleting...';
+  const clearBatch = () => {
+    messagesRef().limit(400).get().then(snap => {
+      if (snap.empty) {
+        deleteAllChatBtn.disabled = false;
+        deleteAllChatBtn.textContent = '🗑 Delete All';
+        return;
+      }
+      const batch = db.batch();
+      snap.forEach(doc => batch.delete(doc.ref));
+      batch.commit().then(clearBatch); // keep clearing in chunks until nothing is left
+    }).catch(() => {
+      deleteAllChatBtn.disabled = false;
+      deleteAllChatBtn.textContent = '🗑 Delete All';
+    });
+  };
+  clearBatch();
+});
 
 function sendAdminMsg() {
   const text = chatInput.value.trim().slice(0, 50);
