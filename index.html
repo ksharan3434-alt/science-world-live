@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Science World — Teacher Panel</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script type="module">
+  import { Storage } from 'https://unpkg.com/megajs/dist/main.browser-es.mjs';
+  window.__MegaStorage = Storage;
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
@@ -173,6 +177,12 @@
           </label>
           <p class="hint" style="margin-top:-6px;">Only turn this on if someone is running the Relay Panel for this class — otherwise students won't see anything. Leave off for normal direct broadcasting.</p>
 
+          <label style="margin-top:16px;">Save Class Recording to Mega Cloud</label>
+          <input type="text" id="megaEmailInput" placeholder="Mega account email" autocomplete="off" style="margin-bottom:8px;">
+          <input type="password" id="megaPasswordInput" placeholder="Mega account password" autocomplete="off">
+          <button type="button" class="btn-dark" id="megaConnectBtn" style="margin-top:8px;">☁️ Connect Mega</button>
+          <p class="hint" id="megaConnectStatus" style="margin-top:6px;">Not connected — recording won't be saved unless you connect first.</p>
+
           <button class="btn-primary" id="startBtn">Start Camera</button>
         </div>
 
@@ -191,6 +201,11 @@
           <div class="live-tag" id="liveTag"><span class="dot"></span> LIVE</div>
         </div>
         <p class="hint" id="loadHint" style="display:none; margin-top:10px;"></p>
+        <p class="hint" id="recordingStatus" style="display:none; margin-top:6px;"></p>
+        <div id="recordingLinkBox" style="display:none; margin-top:6px;">
+          <input type="text" id="recordingLinkInput" readonly style="width:100%; padding:8px 10px; border-radius:8px; border:1.5px solid #ded6c2; font-size:0.8rem;">
+          <button type="button" class="btn-dark" id="recordingLinkCopyBtn" style="margin-top:6px; padding:8px 12px; font-size:0.8rem;">📋 Copy Recording Folder Link</button>
+        </div>
 
         <video id="localVideo" autoplay muted playsinline></video>
 
@@ -326,12 +341,25 @@ let teacherStream = null;   // the real teacher's camera+mic, received once via 
 let teacherCall = null;
 let usingTeacherFeed = false;
 
+let cloudRecorder = null;
+let cloudRecording = false;
+let recordingSessionId = null;
+let recordingSegIndex = 0;
+let megaStorage = null;
+let megaSessionFolder = null;
+let sessionBlobs = [];
+let restartingRecorderForSwitch = false;
+
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const statusBox = document.getElementById('statusBox');
 const localVideo = document.getElementById('localVideo');
 const statRow = document.getElementById('statRow');
 const loadHint = document.getElementById('loadHint');
+const recordingStatus = document.getElementById('recordingStatus');
+const recordingLinkBox = document.getElementById('recordingLinkBox');
+const recordingLinkInput = document.getElementById('recordingLinkInput');
+const recordingLinkCopyBtn = document.getElementById('recordingLinkCopyBtn');
 const studentCountEl = document.getElementById('studentCount');
 const setupBlock = document.getElementById('setupBlock');
 const linkBox = document.getElementById('linkBox');
@@ -344,6 +372,10 @@ const camBtn = document.getElementById('camBtn');
 const qualitySelect = document.getElementById('qualitySelect');
 const uploadMbpsInput = document.getElementById('uploadMbpsInput');
 const relayModeCheckbox = document.getElementById('relayModeCheckbox');
+const megaEmailInput = document.getElementById('megaEmailInput');
+const megaPasswordInput = document.getElementById('megaPasswordInput');
+const megaConnectBtn = document.getElementById('megaConnectBtn');
+const megaConnectStatus = document.getElementById('megaConnectStatus');
 const shareScreenBtn = document.getElementById('shareScreenBtn');
 const shareAudioBtn = document.getElementById('shareAudioBtn');
 const teacherVideoBtn = document.getElementById('teacherVideoBtn');
@@ -748,6 +780,8 @@ startBtn.addEventListener('click', async () => {
     const link = buildStudentLink();
     shareLinkInput.value = link;
     linkBox.classList.add('show');
+
+    startCloudRecording();
   });
 
   peer.on('call', (call) => {
@@ -869,6 +903,37 @@ function applyScreenShareQuality() {
 
 /* Used only to answer the teacher's incoming call — we don't need to send
    them anything real back, just receive their camera. */
+/* ===== Mega connection — logs into the teacher's Mega account once,
+   used to upload every recording segment for this session. ===== */
+recordingLinkCopyBtn.addEventListener('click', () => {
+  recordingLinkInput.select();
+  navigator.clipboard.writeText(recordingLinkInput.value).then(() => {
+    recordingLinkCopyBtn.textContent = '✓ Copied';
+    setTimeout(() => { recordingLinkCopyBtn.textContent = '📋 Copy Recording Folder Link'; }, 1800);
+  }).catch(() => { document.execCommand('copy'); });
+});
+
+megaConnectBtn.addEventListener('click', async () => {
+  const email = megaEmailInput.value.trim();
+  const password = megaPasswordInput.value;
+  if (!email || !password) { megaConnectStatus.textContent = '⚠️ Email aur password dono chahiye.'; return; }
+  if (!window.__MegaStorage) { megaConnectStatus.textContent = '⚠️ Mega library load nahi ho payi — page reload karke try karo.'; return; }
+
+  megaConnectBtn.disabled = true;
+  megaConnectStatus.textContent = 'Connecting to Mega...';
+  try {
+    megaStorage = new window.__MegaStorage({ email, password, userAgent: null });
+    await megaStorage.ready;
+    megaConnectStatus.textContent = '✅ Mega se connected — recording save hogi.';
+    megaEmailInput.disabled = true;
+    megaPasswordInput.disabled = true;
+  } catch (err) {
+    megaConnectStatus.textContent = '⚠️ Mega login fail: ' + err.message;
+    megaStorage = null;
+    megaConnectBtn.disabled = false;
+  }
+});
+
 function createSilentPlaceholderStream() {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const silentSource = ctx.createConstantSource();
@@ -908,6 +973,7 @@ function switchToTeacherFeed() {
   usingTeacherFeed = true;
   teacherVideoBtn.textContent = '📷 Switch Back to My Camera';
   showStatus('Now broadcasting the teacher\u2019s camera and mic.', false);
+  restartRecorderForSourceChange();
 }
 
 function switchToOwnCamera() {
@@ -930,12 +996,180 @@ function switchToOwnCamera() {
   usingTeacherFeed = false;
   teacherVideoBtn.textContent = teacherStream ? '📡 Use Video from Teacher' : '📡 Use Video from Teacher (waiting for teacher...)';
   showStatus('Back to your own camera.', false);
+  restartRecorderForSourceChange();
 }
 
 teacherVideoBtn.addEventListener('click', () => {
   if (usingTeacherFeed) switchToOwnCamera();
   else switchToTeacherFeed();
 });
+
+/* ===== Cloud recording =====
+   Records whatever is currently being broadcast (own camera, teacher's
+   feed, or screen share) in rolling ~20-second segments, uploading each
+   one to the teacher's Mega account as soon as it's ready. Segment-based
+   instead of one giant recording so a crash/refresh only loses the last
+   few seconds, not the whole class. */
+const RECORDING_SEGMENT_MS = 20000;
+
+function getCurrentBroadcastStream() {
+  if (usingTeacherFeed && teacherStream) return teacherStream;
+  // Build a fresh MediaStream with whatever tracks are currently live in
+  // localStream (camera or screen video, plus the mixed audio bus) — safer
+  // than handing MediaRecorder the same long-lived localStream object and
+  // hoping it notices in-place track swaps.
+  const videoTrack = localStream.getVideoTracks()[0];
+  const audioTrack = localStream.getAudioTracks()[0];
+  return new MediaStream([videoTrack, audioTrack].filter(Boolean));
+}
+
+function recordingsRef() {
+  return db.collection('rooms').doc(ROOM_ID).collection('recordings').doc(recordingSessionId).collection('segments');
+}
+
+async function ensureMegaFolder() {
+  if (megaSessionFolder) return megaSessionFolder;
+  megaSessionFolder = await megaStorage.mkdir(recordingSessionId);
+  megaSessionFolder.link().then(url => {
+    recordingLinkInput.value = url;
+    recordingLinkBox.style.display = 'block';
+  }).catch(() => {});
+  return megaSessionFolder;
+}
+
+function startRecorderForCurrentSource() {
+  if (!cloudRecording) return;
+  const stream = getCurrentBroadcastStream();
+  if (!stream) { cloudRecording = false; return; }
+
+  let mimeType = 'video/webm;codecs=vp8,opus';
+  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+
+  let rec;
+  try { rec = new MediaRecorder(stream, { mimeType }); }
+  catch (e) { recordingStatus.textContent = '⚠️ Recording failed to start: ' + e.message; return; }
+
+  cloudRecorder = rec;
+  // timeslice fires ondataavailable every RECORDING_SEGMENT_MS WITHOUT stopping the
+  // recording — so every chunk is a piece of the SAME continuous stream, and they
+  // can be joined back into one valid video later (unlike restarting a new recorder
+  // each time, which produces separate, non-joinable files).
+  rec.ondataavailable = (e) => {
+    if (e.data && e.data.size) {
+      sessionBlobs.push(e.data);
+      uploadSegment(e.data);
+    }
+  };
+  rec.onstop = () => {
+    if (restartingRecorderForSwitch) {
+      restartingRecorderForSwitch = false;
+      startRecorderForCurrentSource(); // pick up recording on the new source, same session
+    } else {
+      finalizeFullRecording();
+    }
+  };
+  rec.start(RECORDING_SEGMENT_MS);
+}
+
+/* Call this any time the broadcast source changes (camera <-> teacher feed
+   <-> screen share) while recording is on — restarts the recorder so it
+   follows whatever is actually being shown to students. The new segment
+   chunks still get appended to the same sessionBlobs array, so the final
+   combined video includes everything, in order. */
+function restartRecorderForSourceChange() {
+  if (!cloudRecording) return;
+  if (cloudRecorder && cloudRecorder.state === 'recording') {
+    restartingRecorderForSwitch = true;
+    try { cloudRecorder.stop(); } catch (e) { restartingRecorderForSwitch = false; startRecorderForCurrentSource(); }
+  } else {
+    startRecorderForCurrentSource();
+  }
+}
+
+async function uploadSegment(blob) {
+  const idx = recordingSegIndex++;
+  const name = String(idx).padStart(5, '0') + '.webm';
+
+  if (!megaStorage) {
+    recordingStatus.textContent = '⚠️ Mega connected nahi hai — ye segment save nahi hua. "Connect Mega" dabao setup me.';
+    return;
+  }
+
+  recordingStatus.textContent = '🔴 Recording — saving to Mega (segment ' + (idx + 1) + ')...';
+  try {
+    const folder = await ensureMegaFolder();
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    const uploadedFile = await folder.upload({ name, size: buf.length }, buf).complete;
+    const url = await uploadedFile.link();
+
+    recordingsRef().doc(String(idx).padStart(5, '0')).set({
+      index: idx,
+      url,
+      durationMs: RECORDING_SEGMENT_MS,
+      ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    if (cloudRecording) recordingStatus.textContent = '🔴 Recording (' + (idx + 1) + ' segments saved to Mega)';
+  } catch (err) {
+    recordingStatus.textContent = '⚠️ Upload failed for a segment — will keep trying with the next one. (' + err.message + ')';
+  }
+}
+
+/* Once recording stops, the individual chunks (already uploaded one by one
+   for resilience) are simply concatenated in order — because they all came
+   from ONE continuous MediaRecorder timeslice, joining the raw bytes
+   reconstructs a single valid video, no re-encoding/ffmpeg needed. */
+async function finalizeFullRecording() {
+  if (!sessionBlobs.length || !megaStorage) { sessionBlobs = []; return; }
+  recordingStatus.style.display = 'block';
+  recordingStatus.textContent = '🎬 Combining ' + sessionBlobs.length + ' segments into one video...';
+  try {
+    const mimeType = sessionBlobs[0].type || 'video/webm';
+    const fullBlob = new Blob(sessionBlobs, { type: mimeType });
+    const folder = await ensureMegaFolder();
+    const buf = new Uint8Array(await fullBlob.arrayBuffer());
+    const uploadedFile = await folder.upload({ name: 'full-class.webm', size: buf.length }, buf).complete;
+    const url = await uploadedFile.link();
+
+    recordingLinkInput.value = url;
+    recordingLinkBox.style.display = 'block';
+    recordingLinkCopyBtn.textContent = '📋 Copy Full Class Video Link';
+    recordingStatus.textContent = '✅ Full class video saved to Mega — link is ready below.';
+
+    db.collection('rooms').doc(ROOM_ID).collection('recordings').doc(recordingSessionId)
+      .set({ fullVideoUrl: url, finishedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  } catch (err) {
+    recordingStatus.textContent = '⚠️ Could not combine the full video (' + err.message + ') — but every individual segment is still safe in the recording folder.';
+  }
+  sessionBlobs = [];
+}
+
+function startCloudRecording() {
+  if (cloudRecording || !localStream) return;
+  if (!window.MediaRecorder) { recordingStatus.textContent = '⚠️ This browser doesn\u2019t support recording.'; recordingStatus.style.display = 'block'; return; }
+  if (!megaStorage) { recordingStatus.textContent = '⚠️ Mega connected nahi hai — recording save nahi hogi. "Connect Mega" pehle dabao.'; recordingStatus.style.display = 'block'; return; }
+  recordingSessionId = ROOM_ID + '_' + Date.now();
+  recordingSegIndex = 0;
+  megaSessionFolder = null;
+  sessionBlobs = [];
+  recordingLinkBox.style.display = 'none';
+  recordingLinkInput.value = '';
+  recordingLinkCopyBtn.textContent = '📋 Copy Recording Folder Link';
+  cloudRecording = true;
+  recordingStatus.style.display = 'block';
+  recordingStatus.textContent = '🔴 Recording — saving to Mega...';
+  db.collection('rooms').doc(ROOM_ID).collection('recordings').doc(recordingSessionId)
+    .set({ startedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  startRecorderForCurrentSource();
+}
+
+function stopCloudRecording() {
+  if (!cloudRecording) return;
+  cloudRecording = false;
+  if (cloudRecorder && cloudRecorder.state === 'recording') { try { cloudRecorder.stop(); } catch (e) {} }
+  cloudRecorder = null;
+  // recordingStatus is left visible — finalizeFullRecording() (triggered by the
+  // recorder's onstop) will update it with the combine/upload progress and result.
+}
 
 shareScreenBtn.addEventListener('click', async () => {
   if (!localStream) return;
@@ -982,6 +1216,7 @@ shareScreenBtn.addEventListener('click', async () => {
   isScreenSharing = true;
   shareScreenBtn.textContent = '🖥️ Stop Sharing';
   shareScreenBtn.classList.add('off');
+  restartRecorderForSourceChange();
 });
 
 function stopScreenShare() {
@@ -1006,6 +1241,7 @@ function stopScreenShare() {
   shareScreenBtn.textContent = '🖥️ Share Screen';
   shareScreenBtn.classList.remove('off');
   showStatus('Back to your camera.', false);
+  restartRecorderForSourceChange();
 }
 
 /* "Play a video/audio and let students hear it, but keep showing MY camera"
@@ -1095,6 +1331,7 @@ copyBtn.addEventListener('click', () => {
 });
 
 stopBtn.addEventListener('click', () => {
+  stopCloudRecording();
   connectedCalls.forEach(c => c.close());
   connectedCalls = [];
   studentCount = 0;
