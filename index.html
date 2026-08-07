@@ -127,12 +127,87 @@
   .level-meter-blue{ position:absolute; left:35%; top:0; height:100%; width:0%; background:var(--meter-blue); transition:width 0.05s linear; }
   .level-meter-yellow{ position:absolute; left:65%; top:0; height:100%; width:0%; background:var(--meter-yellow); transition:width 0.05s linear; }
   .level-meter-red{ position:absolute; left:85%; top:0; height:100%; width:0%; background:var(--meter-red); transition:width 0.05s linear; }
+  .freq-wrap{ margin-top:8px; border-radius:8px; background:#0c1512; padding:6px 6px 4px; border:1px solid #1c2b26; }
+  .freq-canvas{ width:100%; height:54px; display:block; border-radius:4px; }
+  .freq-label{ display:flex; justify-content:space-between; font-size:0.6rem; color:#5f8a7a; letter-spacing:0.05em; margin-top:3px; padding:0 2px; text-transform:uppercase; }
+
+  /* Live Wave Visuals */
+  .visuals-toprow{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .visuals-title{ font-weight:700; font-size:0.9rem; color:var(--accent-dark); display:flex; align-items:center; gap:8px; }
+  .live-real-badge{ font-size:0.6rem; font-weight:800; letter-spacing:0.06em; background:var(--red); color:#fff; padding:3px 8px; border-radius:20px; box-shadow:0 2px 0 var(--red-dark); animation:badgepulse 1.8s infinite; }
+  @keyframes badgepulse{ 0%{box-shadow:0 2px 0 var(--red-dark), 0 0 0 0 rgba(224,51,43,0.5);} 70%{box-shadow:0 2px 0 var(--red-dark), 0 0 0 8px rgba(224,51,43,0);} 100%{box-shadow:0 2px 0 var(--red-dark), 0 0 0 0 rgba(224,51,43,0);} }
+  .switch{ position:relative; display:inline-block; width:42px; height:24px; flex:0 0 auto; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch-track{ position:absolute; cursor:pointer; inset:0; background:#cfc7ae; border-radius:24px; transition:.2s; }
+  .switch-track:before{ position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,0.3); }
+  .switch input:checked + .switch-track{ background:var(--accent); }
+  .switch input:checked + .switch-track:before{ transform:translateX(18px); }
+  .switch-row{ display:flex; align-items:center; gap:10px; }
+  .switch-label{ font-size:0.75rem; font-weight:600; color:var(--muted); }
+
+  .wave-clean-box{ background:#fbfaf6; border:1.5px solid #ded6c2; border-radius:12px; padding:14px 16px 10px; margin-bottom:16px; }
+  .wave-clean-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .wave-clean-head span{ font-size:0.72rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+  .wave-readout{ font-size:0.78rem; font-weight:800; color:var(--accent-dark); font-variant-numeric:tabular-nums; }
+  .wave-clean-canvas{ width:100%; height:110px; display:block; }
+
+  .wave-art-box{ position:relative; background:radial-gradient(circle at 30% 20%, #10201c 0%, #060a09 70%); border:1.5px solid #163229; border-radius:14px; padding:14px 14px 10px; overflow:hidden; box-shadow:0 0 0 1px rgba(47,111,94,0.25) inset, 0 14px 30px -18px rgba(0,0,0,0.6); }
+  .wave-art-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .wave-art-head span.label{ font-size:0.66rem; letter-spacing:0.1em; text-transform:uppercase; color:#7fd8b8; font-weight:700; }
+  .wave-art-readout{ font-size:0.68rem; color:#5f8a7a; font-variant-numeric:tabular-nums; display:flex; gap:10px; }
+  .wave-art-canvas{ width:100%; height:150px; display:block; border-radius:8px; }
+  .wave-art-box.idle .wave-art-canvas{ opacity:0.5; }
+  .wave-off-msg{ font-size:0.75rem; color:var(--muted); text-align:center; padding:24px 0; display:none; }
+  .wave-off-msg.show{ display:block; }
+  .perf-note{ font-size:0.72rem; color:var(--muted); line-height:1.5; margin-top:10px; }
+
   .eq-row{ display:flex; justify-content:space-between; gap:8px; padding:6px 0 4px; }
   .eq-band{ flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; }
   .eq-slider{ -webkit-appearance:slider-vertical; appearance:slider-vertical; width:22px; height:90px; accent-color:var(--accent); cursor:pointer; }
   .eq-val{ font-size:0.7rem; font-weight:700; color:var(--accent-dark); min-height:14px; }
   .eq-band label{ font-size:0.62rem; margin:0; text-transform:none; letter-spacing:0; color:var(--muted); font-weight:600; }
   .eq-preset-btns{ display:flex; gap:6px; }
+
+  /* Advanced Controls */
+  .adv-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #ece6d4; gap:10px; }
+  .adv-row:last-of-type{ border-bottom:none; }
+  .adv-row-label{ font-size:0.85rem; font-weight:600; color:var(--ink); }
+  .adv-row-desc{ font-size:0.72rem; color:var(--muted); margin-top:2px; }
+
+  /* Mention dropdown */
+  .mention-box{ position:relative; }
+  .mention-dropdown{ display:none; position:absolute; bottom:100%; left:0; right:0; background:#fff; border:1.5px solid var(--accent); border-radius:10px; margin-bottom:6px; max-height:150px; overflow-y:auto; box-shadow:0 8px 20px -10px rgba(0,0,0,0.3); z-index:20; }
+  .mention-dropdown.show{ display:block; }
+  .mention-item{ padding:8px 12px; font-size:0.82rem; cursor:pointer; }
+  .mention-item:hover, .mention-item.hi{ background:var(--accent-soft); }
+  .chat-mention{ color:var(--accent-dark); font-weight:700; background:var(--accent-soft); padding:0 3px; border-radius:4px; }
+
+  /* Emoji reactions */
+  .chat-tools{ display:flex; gap:8px; align-items:center; }
+  .emoji-btn{ width:auto; padding:0 12px; background:var(--accent-soft); color:var(--accent-dark); font-size:1rem; border-radius:8px; flex:0 0 auto; }
+  .emoji-popup{ display:none; flex-wrap:wrap; gap:6px; background:#fbfaf6; border:1.5px solid #d7d0bd; border-radius:10px; padding:8px; margin-bottom:10px; }
+  .emoji-popup.show{ display:flex; }
+  .emoji-opt{ width:auto; flex:0 0 auto; padding:4px 8px; font-size:1.15rem; background:transparent; border-radius:6px; }
+  .emoji-opt:hover{ background:var(--accent-soft); }
+  .reaction-tally{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .reaction-chip{ font-size:0.76rem; font-weight:700; background:var(--accent-soft); color:var(--accent-dark); padding:3px 9px; border-radius:20px; }
+  .chat-disabled-note{ display:none; font-size:0.78rem; color:var(--danger); background:var(--danger-soft); padding:8px 11px; border-radius:8px; margin-bottom:10px; }
+  .chat-disabled-note.show{ display:block; }
+  .s-xp{ font-size:0.62rem; font-weight:700; color:var(--accent-dark); background:var(--accent-soft); padding:2px 6px; border-radius:8px; margin-left:2px; }
+
+  /* Stream Report */
+  .report-stats{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+  .report-stat{ background:var(--accent-soft); border-radius:10px; padding:10px 16px; text-align:center; flex:1 1 100px; }
+  .report-stat .rs-num{ font-size:1.3rem; font-weight:800; color:var(--accent-dark); }
+  .report-stat .rs-lbl{ font-size:0.65rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); margin-top:2px; }
+  .report-section-title{ font-weight:700; font-size:0.85rem; color:var(--accent-dark); margin:16px 0 8px; }
+  .report-student-block{ background:#fbfaf6; border:1px solid #ded6c2; border-radius:10px; padding:10px 13px; margin-bottom:10px; }
+  .report-student-head{ display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; font-weight:700; color:var(--ink); }
+  .report-student-xp{ font-size:0.72rem; font-weight:700; color:var(--accent-dark); background:var(--accent-soft); padding:2px 8px; border-radius:10px; }
+  .report-msg-line{ font-size:0.78rem; color:var(--ink); margin-top:6px; padding-left:8px; border-left:2px solid #ded6c2; }
+  .report-reaction-line{ font-size:0.78rem; color:var(--muted); margin-top:4px; }
+  .report-empty{ font-size:0.82rem; color:var(--muted); }
+  .report-close-btn{ margin-top:12px; }
 
   /* Mobile tweaks */
   @media (max-width:480px){
@@ -227,12 +302,14 @@
           <div class="mixer-channel-head"><span>🎤 Mic</span><span id="micVolLabel">100%</span></div>
           <input type="range" id="micVolSlider" min="0" max="200" value="100">
           <div class="level-meter"><div class="level-meter-green" id="micMeterGreen"></div><div class="level-meter-blue" id="micMeterBlue"></div><div class="level-meter-yellow" id="micMeterYellow"></div><div class="level-meter-red" id="micMeterRed"></div></div>
+          <div class="freq-wrap"><canvas class="freq-canvas" id="micFreqCanvas"></canvas><div class="freq-label"><span>60Hz</span><span>1kHz</span><span>8kHz</span><span>20kHz</span></div></div>
         </div>
 
         <div class="mixer-channel" id="desktopChannelRow" style="display:none;">
           <div class="mixer-channel-head"><span>🖥️ Desktop Audio</span><span id="desktopVolLabel">100%</span></div>
           <input type="range" id="desktopVolSlider" min="0" max="200" value="100">
           <div class="level-meter"><div class="level-meter-green" id="desktopMeterGreen"></div><div class="level-meter-blue" id="desktopMeterBlue"></div><div class="level-meter-yellow" id="desktopMeterYellow"></div><div class="level-meter-red" id="desktopMeterRed"></div></div>
+          <div class="freq-wrap"><canvas class="freq-canvas" id="desktopFreqCanvas"></canvas><div class="freq-label"><span>60Hz</span><span>1kHz</span><span>8kHz</span><span>20kHz</span></div></div>
         </div>
 
         <div class="mixer-divider"></div>
@@ -253,6 +330,12 @@
           <div class="eq-band"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" step="1" data-band="4"><span class="eq-val" id="eqVal4">0</span><label>12kHz</label></div>
         </div>
 
+        <div class="mixer-channel" style="margin-top:14px;">
+          <div class="mixer-channel-head"><span>🎛️ Frequency (Bass ↔ Treble)</span><span id="toneLabel">Neutral</span></div>
+          <input type="range" id="toneSlider" min="-12" max="12" value="0" step="1">
+          <p class="hint" style="margin:6px 0 0;">Ek hi slider se poore sound ka frequency kam (bass-heavy, bhaari) ya zyada (treble-heavy, tez) kar do — upar ke 5 EQ bands khud adjust ho jaate hain. Individual bands upar se alag se bhi fine-tune kar sakte ho.</p>
+        </div>
+
         <div class="mixer-divider"></div>
 
         <div class="mixer-channel">
@@ -264,9 +347,44 @@
           <div class="mixer-channel-head"><span>🔊 Master Volume</span><span id="masterVolLabel">100%</span></div>
           <input type="range" id="masterVolSlider" min="0" max="150" value="100">
           <div class="level-meter"><div class="level-meter-green" id="masterMeterGreen"></div><div class="level-meter-blue" id="masterMeterBlue"></div><div class="level-meter-yellow" id="masterMeterYellow"></div><div class="level-meter-red" id="masterMeterRed"></div></div>
+          <div class="freq-wrap"><canvas class="freq-canvas" id="masterFreqCanvas"></canvas><div class="freq-label"><span>60Hz</span><span>1kHz</span><span>8kHz</span><span>20kHz</span></div></div>
         </div>
 
         <p class="students-note">This is what students hear. Boost helps a quiet mic but can distort — a limiter runs automatically to soften harsh clipping. Desktop Audio only appears once you share your screen with sound.</p>
+
+        <div class="mixer-divider"></div>
+
+        <div class="visuals-toprow">
+          <div class="visuals-title">〰️ Live Wave Visuals <span class="live-real-badge">LIVE • REAL AUDIO</span></div>
+          <div class="switch-row">
+            <span class="switch-label" id="visualsToggleLabel">ON</span>
+            <label class="switch">
+              <input type="checkbox" id="visualsEnableToggle" checked>
+              <span class="switch-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="visualsBody">
+          <div class="wave-clean-box">
+            <div class="wave-clean-head">
+              <span>Displacement — Real Amplitude</span>
+              <span class="wave-readout" id="cleanWaveReadout">A = 0.00</span>
+            </div>
+            <canvas class="wave-clean-canvas" id="cleanWaveCanvas"></canvas>
+          </div>
+
+          <div class="wave-art-box" id="artWaveBox">
+            <div class="wave-art-head">
+              <span class="label">Neon Spectrum — Bass / Mid / Treble</span>
+              <span class="wave-art-readout"><span id="artBassVal">B 0%</span><span id="artMidVal">M 0%</span><span id="artHighVal">H 0%</span></span>
+            </div>
+            <canvas class="wave-art-canvas" id="artWaveCanvas"></canvas>
+          </div>
+        </div>
+        <div class="wave-off-msg" id="visualsOffMsg">Visuals paused — turned off to save CPU. Toggle back on anytime.</div>
+
+        <p class="perf-note">Both panels are driven by the exact same live mixed audio the students hear — nothing here is faked or looped. Rendering does use a small amount of extra CPU/GPU on top of the video encoding already running; turn this off during a big class (10+ students) if you notice any stutter.</p>
       </div>
     </div>
 
@@ -300,16 +418,55 @@
       </div>
 
       <div class="card">
-        <div class="side-tab">💬 Chat</div>
+        <div class="side-tab">⚙️ Advanced Controls</div>
+        <div class="adv-row">
+          <div>
+            <div class="adv-row-label">💬 Chat</div>
+            <div class="adv-row-desc">Off karne par koi student message nahi bhej payega.</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="chatEnabledToggle" checked><span class="switch-track"></span></label>
+        </div>
+        <div class="adv-row">
+          <div>
+            <div class="adv-row-label">😀 Reactions</div>
+            <div class="adv-row-desc">Off karne par emoji reaction button students ke liye disable ho jaayega.</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="reactionsEnabledToggle" checked><span class="switch-track"></span></label>
+        </div>
+        <div class="adv-row">
+          <div>
+            <div class="adv-row-label">🔒 Private Chat</div>
+            <div class="adv-row-desc">On karne par student ko sirf apna aur Teacher/Admin ka message dikhega, doosre bachho ka nahi. Admin (aap) ko hamesha sabka chat dikhega.</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="privateChatToggle"><span class="switch-track"></span></label>
+        </div>
+        <p class="hint" id="advSyncNote" style="margin:10px 0 0;">Settings saare students ke live.</p>
+      </div>
+
+      <div class="card">
+        <div class="side-tab">💬 Chat <span style="font-weight:400; font-size:0.72rem; color:var(--muted);">(admin ko sabka chat dikhta hai)</span></div>
+        <div class="reaction-tally" id="reactionTally"></div>
+        <div class="chat-disabled-note" id="chatDisabledNote">Chat abhi aapne khud OFF kar rakha hai — students message nahi bhej payenge. Aap (Teacher) phir bhi bhej sakte ho.</div>
         <div class="chat-list" id="chatList"></div>
-        <div class="chat-input-row">
-          <input type="text" id="chatInput" placeholder="Type a message..." maxlength="50">
-          <button id="chatSendBtn">Send</button>
+        <div class="emoji-popup" id="emojiPopup"></div>
+        <div class="mention-box">
+          <div class="mention-dropdown" id="mentionDropdown"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Type a message... (@ for mention)" maxlength="50">
+            <button type="button" class="emoji-btn" id="emojiToggleBtn">😀</button>
+            <button id="chatSendBtn">Send</button>
+          </div>
         </div>
         <div class="char-counter" id="charCounter">0/50</div>
       </div>
     </div>
 
+  </div>
+
+  <div class="card" id="streamReportCard" style="display:none;">
+    <div class="side-tab">📊 Last Stream Report</div>
+    <div id="streamReportBody"></div>
+    <button type="button" class="btn-dark report-close-btn" id="closeReportBtn">Close Report</button>
   </div>
 </div>
 
@@ -404,6 +561,21 @@ const masterMeterGreen = document.getElementById('masterMeterGreen');
 const masterMeterBlue = document.getElementById('masterMeterBlue');
 const masterMeterYellow = document.getElementById('masterMeterYellow');
 const masterMeterRed = document.getElementById('masterMeterRed');
+const micFreqCanvas = document.getElementById('micFreqCanvas');
+const desktopFreqCanvas = document.getElementById('desktopFreqCanvas');
+const masterFreqCanvas = document.getElementById('masterFreqCanvas');
+
+const visualsEnableToggle = document.getElementById('visualsEnableToggle');
+const visualsToggleLabel = document.getElementById('visualsToggleLabel');
+const visualsBody = document.getElementById('visualsBody');
+const visualsOffMsg = document.getElementById('visualsOffMsg');
+const cleanWaveCanvas = document.getElementById('cleanWaveCanvas');
+const cleanWaveReadout = document.getElementById('cleanWaveReadout');
+const artWaveBox = document.getElementById('artWaveBox');
+const artWaveCanvas = document.getElementById('artWaveCanvas');
+const artBassVal = document.getElementById('artBassVal');
+const artMidVal = document.getElementById('artMidVal');
+const artHighVal = document.getElementById('artHighVal');
 
 const QUALITY_MAP = {
   '480': { width: { ideal: 854 }, height: { ideal: 480 } },
@@ -558,14 +730,14 @@ function initAudioEngine(micStream) {
   mixBus = audioCtx.createGain(); mixBus.gain.value = 1;
 
   micGainNode = audioCtx.createGain(); micGainNode.gain.value = micVolSlider.value / 100;
-  micAnalyser = audioCtx.createAnalyser(); micAnalyser.fftSize = 256;
+  micAnalyser = audioCtx.createAnalyser(); micAnalyser.fftSize = 1024; micAnalyser.smoothingTimeConstant = 0.75;
   micSourceNode = audioCtx.createMediaStreamSource(micStream);
   micSourceNode.connect(micGainNode);
   micGainNode.connect(micAnalyser);
   micGainNode.connect(mixBus);
 
   desktopGainNode = audioCtx.createGain(); desktopGainNode.gain.value = desktopVolSlider.value / 100;
-  desktopAnalyser = audioCtx.createAnalyser(); desktopAnalyser.fftSize = 256;
+  desktopAnalyser = audioCtx.createAnalyser(); desktopAnalyser.fftSize = 1024; desktopAnalyser.smoothingTimeConstant = 0.75;
 
   eqFilters = EQ_BANDS.map(band => {
     const f = audioCtx.createBiquadFilter();
@@ -592,7 +764,7 @@ function initAudioEngine(micStream) {
   masterGainNode = audioCtx.createGain(); masterGainNode.gain.value = masterVolSlider.value / 100;
   compressorNode.connect(masterGainNode);
 
-  masterAnalyser = audioCtx.createAnalyser(); masterAnalyser.fftSize = 256;
+  masterAnalyser = audioCtx.createAnalyser(); masterAnalyser.fftSize = 1024; masterAnalyser.smoothingTimeConstant = 0.75;
   masterGainNode.connect(masterAnalyser);
 
   destinationNode = audioCtx.createMediaStreamDestination();
@@ -605,6 +777,7 @@ function initAudioEngine(micStream) {
 
   mixerCard.style.display = 'block';
   startMeterLoop();
+  startVisualsLoop();
 }
 
 function addDesktopAudioSource(desktopAudioStream) {
@@ -626,6 +799,7 @@ function removeDesktopAudioSource() {
 
 function teardownAudioEngine() {
   meterLoopRunning = false;
+  stopVisualsLoop();
   if (audioCtx) { audioCtx.close().catch(() => {}); }
   if (rawMicTrackRef) { try { rawMicTrackRef.stop(); } catch (e) {} rawMicTrackRef = null; }
   audioCtx = null; micSourceNode = null; desktopSourceNode = null;
@@ -663,18 +837,228 @@ function setMeter(elGreen, elBlue, elYellow, elRed, level) {
   elRed.style.width = redPct + '%';
 }
 
+function fitCanvasToBox(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || canvas.parentElement.clientWidth;
+  const cssH = canvas.clientHeight || 54;
+  const targetW = Math.max(1, Math.round(cssW * dpr));
+  const targetH = Math.max(1, Math.round(cssH * dpr));
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
+}
+
+function drawSpectrum(canvas, analyser, freqBuf, active) {
+  if (!canvas) return;
+  fitCanvasToBox(canvas);
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  if (!active) {
+    ctx.strokeStyle = 'rgba(95,138,122,0.35)';
+    ctx.lineWidth = Math.max(1, h * 0.02);
+    ctx.beginPath();
+    ctx.moveTo(0, h / 2);
+    ctx.lineTo(w, h / 2);
+    ctx.stroke();
+    return;
+  }
+
+  analyser.getByteFrequencyData(freqBuf);
+  // Use a slightly log-weighted slice so low/mid frequencies (where voices live) get more visual room,
+  // while still showing detail up through the highs.
+  const usableBins = Math.floor(freqBuf.length * 0.85);
+  const barCount = Math.min(96, usableBins);
+  const barW = w / barCount;
+
+  const grad = ctx.createLinearGradient(0, h, 0, 0);
+  grad.addColorStop(0, '#2fae60');
+  grad.addColorStop(0.55, '#2f9fd6');
+  grad.addColorStop(0.8, '#e8b23a');
+  grad.addColorStop(1, '#e0332b');
+  ctx.fillStyle = grad;
+
+  for (let i = 0; i < barCount; i++) {
+    const logIndex = Math.floor(Math.pow(i / barCount, 1.4) * usableBins);
+    const v = freqBuf[logIndex] / 255;
+    const barH = Math.max(1, v * h);
+    const x = i * barW;
+    ctx.fillRect(x, h - barH, Math.max(1, barW - 1), barH);
+  }
+}
+
+/* ===== Extra Live Wave Visuals =====
+   Both canvases read from masterAnalyser — the SAME node sitting right
+   before destinationNode, i.e. the exact mixed audio actually sent to
+   students (post EQ/Boost/Compressor/Master Volume). No fake/random data,
+   no pre-baked animation loop — if this analyser sees silence, both
+   canvases go flat/dark. Kept as a separate rAF loop (not merged into
+   startMeterLoop) purely so it can be fully stopped when the toggle is
+   off, instead of just hiding the canvas while still paying to render it. */
+let visualsEnabled = true;
+let visualsLoopRunning = false;
+
+function fitCleanCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || canvas.parentElement.clientWidth;
+  const cssH = canvas.clientHeight || 110;
+  const targetW = Math.max(1, Math.round(cssW * dpr));
+  const targetH = Math.max(1, Math.round(cssH * dpr));
+  if (canvas.width !== targetW || canvas.height !== targetH) { canvas.width = targetW; canvas.height = targetH; }
+}
+
+/* Clean oscilloscope-style wave (matches the "Amplitude/Displacement" textbook
+   diagram look) but every point is real getByteTimeDomainData from the mic/mix. */
+function drawCleanWave(buf) {
+  if (!cleanWaveCanvas) return;
+  fitCleanCanvas(cleanWaveCanvas);
+  const ctx = cleanWaveCanvas.getContext('2d');
+  const w = cleanWaveCanvas.width, h = cleanWaveCanvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.strokeStyle = 'rgba(32,48,44,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+
+  ctx.strokeStyle = '#2f6f5e';
+  ctx.lineWidth = Math.max(1.5, h * 0.018);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath();
+  let peak = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const v = (buf[i] - 128) / 128;
+    peak = Math.max(peak, Math.abs(v));
+    const x = (i / (buf.length - 1)) * w;
+    const y = h / 2 + v * (h / 2) * 0.9;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  cleanWaveReadout.textContent = 'A = ' + peak.toFixed(2);
+}
+
+/* Neon "art" wave — splits the real frequency spectrum into bass/mid/treble
+   bands and draws each as its own flowing, glowing line, colour-coded, the
+   line's own height driven by that band's live energy. Different bands
+   move independently because they ARE different real slices of the
+   spectrum, not decorative copies of one wave. */
+const ART_BANDS = [
+  { name: 'bass',  from: 0.00, to: 0.08, color: '#2fd6c0', glow: 'rgba(47,214,192,0.55)' },
+  { name: 'mid',   from: 0.08, to: 0.30, color: '#4aa8ff', glow: 'rgba(74,168,255,0.55)' },
+  { name: 'treble',from: 0.30, to: 0.65, color: '#c07bff', glow: 'rgba(192,123,255,0.5)' }
+];
+let artPhase = 0;
+
+function drawArtWave(freqBuf) {
+  if (!artWaveCanvas) return;
+  fitCleanCanvas(artWaveCanvas);
+  const ctx = artWaveCanvas.getContext('2d');
+  const w = artWaveCanvas.width, h = artWaveCanvas.height;
+  ctx.clearRect(0, 0, w, h);
+  artPhase += 0.045;
+
+  const bandEnergy = ART_BANDS.map(band => {
+    const from = Math.floor(band.from * freqBuf.length);
+    const to = Math.max(from + 1, Math.floor(band.to * freqBuf.length));
+    let sum = 0;
+    for (let i = from; i < to; i++) sum += freqBuf[i];
+    return (sum / (to - from)) / 255; // 0..1 real energy for this band
+  });
+
+  ART_BANDS.forEach((band, bi) => {
+    const energy = bandEnergy[bi];
+    const amp = h * 0.16 * (0.25 + energy * 1.4);
+    const baseY = h * (0.32 + bi * 0.24);
+
+    ctx.save();
+    ctx.shadowColor = band.glow;
+    ctx.shadowBlur = 10 + energy * 18;
+    ctx.strokeStyle = band.color;
+    ctx.lineWidth = 2 + energy * 2.2;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.55 + energy * 0.45;
+    ctx.beginPath();
+    const points = 64;
+    for (let i = 0; i <= points; i++) {
+      const t = i / points;
+      const x = t * w;
+      const y = baseY + Math.sin(t * Math.PI * (3 + bi) + artPhase * (1 + bi * 0.4)) * amp;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  artBassVal.textContent = 'B ' + Math.round(bandEnergy[0] * 100) + '%';
+  artMidVal.textContent = 'M ' + Math.round(bandEnergy[1] * 100) + '%';
+  artHighVal.textContent = 'H ' + Math.round(bandEnergy[2] * 100) + '%';
+}
+
+function clearVisualCanvases() {
+  [cleanWaveCanvas, artWaveCanvas].forEach(c => {
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+  });
+  cleanWaveReadout.textContent = 'A = 0.00';
+  artBassVal.textContent = 'B 0%'; artMidVal.textContent = 'M 0%'; artHighVal.textContent = 'H 0%';
+}
+
+function startVisualsLoop() {
+  if (visualsLoopRunning) return;
+  visualsLoopRunning = true;
+  const timeBuf = new Uint8Array(2048);
+  const freqBuf = new Uint8Array(2048);
+
+  function loop() {
+    if (!visualsLoopRunning) return;
+    if (visualsEnabled && masterAnalyser) {
+      const tBuf = new Uint8Array(masterAnalyser.fftSize);
+      const fBuf = new Uint8Array(masterAnalyser.frequencyBinCount);
+      masterAnalyser.getByteTimeDomainData(tBuf);
+      masterAnalyser.getByteFrequencyData(fBuf);
+      drawCleanWave(tBuf);
+      drawArtWave(fBuf);
+    }
+    requestAnimationFrame(loop);
+  }
+  loop();
+}
+function stopVisualsLoop() { visualsLoopRunning = false; clearVisualCanvases(); }
+
+function applyVisualsToggleUI() {
+  visualsToggleLabel.textContent = visualsEnabled ? 'ON' : 'OFF';
+  visualsBody.style.display = visualsEnabled ? 'block' : 'none';
+  visualsOffMsg.classList.toggle('show', !visualsEnabled);
+  if (!visualsEnabled) clearVisualCanvases();
+}
+visualsEnableToggle.addEventListener('change', () => {
+  visualsEnabled = visualsEnableToggle.checked;
+  applyVisualsToggleUI();
+});
+applyVisualsToggleUI();
+
 function startMeterLoop() {
   if (meterLoopRunning) return;
   meterLoopRunning = true;
   const micBuf = new Uint8Array(micAnalyser.fftSize);
   const desktopBuf = new Uint8Array(desktopAnalyser.fftSize);
   const masterBuf = new Uint8Array(masterAnalyser.fftSize);
+  const micFreqBuf = new Uint8Array(micAnalyser.frequencyBinCount);
+  const desktopFreqBuf = new Uint8Array(desktopAnalyser.frequencyBinCount);
+  const masterFreqBuf = new Uint8Array(masterAnalyser.frequencyBinCount);
 
   function loop() {
     if (!meterLoopRunning || !audioCtx) return;
     setMeter(micMeterGreen, micMeterBlue, micMeterYellow, micMeterRed, levelFromAnalyser(micAnalyser, micBuf));
     setMeter(desktopMeterGreen, desktopMeterBlue, desktopMeterYellow, desktopMeterRed, desktopSourceNode ? levelFromAnalyser(desktopAnalyser, desktopBuf) : 0);
     setMeter(masterMeterGreen, masterMeterBlue, masterMeterYellow, masterMeterRed, levelFromAnalyser(masterAnalyser, masterBuf));
+
+    drawSpectrum(micFreqCanvas, micAnalyser, micFreqBuf, true);
+    drawSpectrum(desktopFreqCanvas, desktopAnalyser, desktopFreqBuf, !!desktopSourceNode);
+    drawSpectrum(masterFreqCanvas, masterAnalyser, masterFreqBuf, true);
+
     requestAnimationFrame(loop);
   }
   loop();
@@ -702,6 +1086,7 @@ eqSliders.forEach(slider => {
   slider.addEventListener('input', () => {
     valEl.textContent = (slider.value > 0 ? '+' : '') + slider.value;
     if (eqFilters[band]) eqFilters[band].gain.value = parseFloat(slider.value);
+    toneLabel.textContent = 'Custom';
   });
 });
 eqResetBtn.addEventListener('click', () => {
@@ -711,6 +1096,8 @@ eqResetBtn.addEventListener('click', () => {
     document.getElementById('eqVal' + band).textContent = '0';
     if (eqFilters[band]) eqFilters[band].gain.value = 0;
   });
+  toneSlider.value = 0;
+  toneLabel.textContent = 'Neutral';
 });
 
 /* Two quick voice-tone presets: Thin (patla) cuts the low end and lifts the
@@ -728,9 +1115,32 @@ function applyEqPreset(name) {
     document.getElementById('eqVal' + band).textContent = (vals[band] > 0 ? '+' : '') + vals[band];
     if (eqFilters[band]) eqFilters[band].gain.value = vals[band];
   });
+  toneLabel.textContent = 'Custom';
 }
 document.getElementById('eqThinBtn').addEventListener('click', () => applyEqPreset('thin'));
 document.getElementById('eqBoldBtn').addEventListener('click', () => applyEqPreset('bold'));
+
+/* ===== Master Frequency / Tone slider =====
+   One slider that tilts all 5 EQ bands together: negative = bass-heavy
+   (kam/bhaari frequency), positive = treble-heavy (zyada/tez frequency).
+   It writes into the same eqFilters + eq-slider UI, so it stays in sync
+   with the individual band sliders and the Thin/Bold presets. */
+const toneSlider = document.getElementById('toneSlider');
+const toneLabel = document.getElementById('toneLabel');
+const TONE_WEIGHTS = [-1, -0.5, 0, 0.5, 1]; // low bands go down, high bands go up as tone increases
+
+function applyTone(value) {
+  const v = parseFloat(value);
+  eqSliders.forEach(slider => {
+    const band = parseInt(slider.dataset.band, 10);
+    const gain = Math.max(-12, Math.min(12, Math.round(v * TONE_WEIGHTS[band])));
+    slider.value = gain;
+    document.getElementById('eqVal' + band).textContent = (gain > 0 ? '+' : '') + gain;
+    if (eqFilters[band]) eqFilters[band].gain.value = gain;
+  });
+  toneLabel.textContent = v === 0 ? 'Neutral' : (v < 0 ? 'Bass ↓ ' + Math.abs(v) : 'Treble ↑ ' + v);
+}
+toneSlider.addEventListener('input', () => applyTone(toneSlider.value));
 
 const iceConfig = {
   iceServers: [
@@ -1358,43 +1768,139 @@ stopBtn.addEventListener('click', () => {
   showStatus('Broadcast stopped.', false);
 });
 
-/* ===== Chat ===== */
+/* ===== Chat, Mentions, Reactions, XP =====
+   XP is not stored as a mutable counter (avoids race conditions with no
+   backend function) — it's derived live from how many chat messages +
+   reactions each name has sent this session: xp = msgCount*5 + reactionCount*1.
+   These counts also feed the "XP" badge in the Students list and the
+   end-of-stream report. NOTE: private chat / reactions here only cover the
+   admin/teacher side — the student-facing page needs matching logic to
+   (a) hide other students' messages when room.privateChat is true,
+   (b) hide the send box when room.chatEnabled is false, and
+   (c) hide the emoji button when room.reactionsEnabled is false. */
 const chatList = document.getElementById('chatList');
 const chatInput = document.getElementById('chatInput');
 const chatSendBtn = document.getElementById('chatSendBtn');
 const charCounter = document.getElementById('charCounter');
+const mentionDropdown = document.getElementById('mentionDropdown');
+const emojiToggleBtn = document.getElementById('emojiToggleBtn');
+const emojiPopup = document.getElementById('emojiPopup');
+const reactionTally = document.getElementById('reactionTally');
+function reactionsRef(){ return roomRef().collection('reactions'); }
+
+const REACTION_EMOJIS = ['👍','❤️','😂','😮','👏','🎉','🤔','🔥'];
+let msgCountByName = {};
+let reactionCountByName = {};
+let reactionTotalsByEmoji = {};
+let allMessagesCache = [];   // used for the end-of-stream report
+let allReactionsCache = [];  // used for the end-of-stream report
+
+emojiPopup.innerHTML = REACTION_EMOJIS.map(e => '<button type="button" class="emoji-opt" data-e="' + e + '">' + e + '</button>').join('');
+emojiPopup.querySelectorAll('.emoji-opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    reactionsRef().add({ name: 'Teacher', emoji: btn.dataset.e, isAdmin: true, ts: firebase.firestore.FieldValue.serverTimestamp() });
+    emojiPopup.classList.remove('show');
+  });
+});
+emojiToggleBtn.addEventListener('click', () => emojiPopup.classList.toggle('show'));
+
+function listenReactions() {
+  reactionsRef().orderBy('ts', 'asc').limitToLast(500).onSnapshot(snap => {
+    reactionCountByName = {};
+    reactionTotalsByEmoji = {};
+    allReactionsCache = [];
+    snap.forEach(doc => {
+      const r = doc.data();
+      allReactionsCache.push(r);
+      const nm = r.name || 'Student';
+      reactionCountByName[nm] = (reactionCountByName[nm] || 0) + 1;
+      reactionTotalsByEmoji[r.emoji] = (reactionTotalsByEmoji[r.emoji] || 0) + 1;
+    });
+    reactionTally.innerHTML = Object.keys(reactionTotalsByEmoji).length
+      ? Object.entries(reactionTotalsByEmoji).map(([e, c]) => '<span class="reaction-chip">' + e + ' ' + c + '</span>').join('')
+      : '';
+    refreshStudentsView();
+  });
+}
+
+/* Renders @Name as a highlighted mention span; text is still escaped first
+   so this can't be used to inject markup. */
+function renderMsgText(text) {
+  const escaped = escapeHtml(text || '');
+  return escaped.replace(/@([A-Za-z0-9_ .]{1,20}?)(?=[\s.,!?]|$)/g, '<span class="chat-mention">@$1</span>');
+}
+
+function xpFor(name) {
+  return (msgCountByName[name] || 0) * 5 + (reactionCountByName[name] || 0) * 1;
+}
 
 chatInput.addEventListener('input', () => {
   const len = chatInput.value.length;
   charCounter.textContent = len + '/50';
   charCounter.classList.toggle('limit', len >= 50);
+  updateMentionDropdown();
+});
+
+/* ---- @mention autocomplete: type @ then a few letters to pick an online student ---- */
+function updateMentionDropdown() {
+  const val = chatInput.value;
+  const caret = chatInput.selectionStart;
+  const uptoCaret = val.slice(0, caret);
+  const match = uptoCaret.match(/@([A-Za-z0-9_ .]{0,20})$/);
+  if (!match) { mentionDropdown.classList.remove('show'); return; }
+  const query = match[1].toLowerCase();
+  const online = rawStudents.filter(s => (s.name || '').toLowerCase().includes(query)).slice(0, 6);
+  if (!online.length) { mentionDropdown.classList.remove('show'); return; }
+  mentionDropdown.innerHTML = online.map(s => '<div class="mention-item" data-name="' + escapeHtml(s.name || 'Student') + '">' + escapeHtml(s.name || 'Student') + '</div>').join('');
+  mentionDropdown.classList.add('show');
+  mentionDropdown.querySelectorAll('.mention-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const name = item.dataset.name;
+      const before = uptoCaret.replace(/@([A-Za-z0-9_ .]{0,20})$/, '@' + name + ' ');
+      chatInput.value = before + val.slice(caret);
+      chatInput.focus();
+      mentionDropdown.classList.remove('show');
+      charCounter.textContent = chatInput.value.length + '/50';
+    });
+  });
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.mention-box')) mentionDropdown.classList.remove('show');
 });
 
 function listenChat() {
   messagesRef().orderBy('ts', 'asc').limitToLast(150).onSnapshot(snap => {
     chatList.innerHTML = '';
+    msgCountByName = {};
+    allMessagesCache = [];
     snap.forEach(doc => {
       const m = doc.data();
+      allMessagesCache.push(m);
+      if (!m.isAdmin) msgCountByName[m.name || 'Student'] = (msgCountByName[m.name || 'Student'] || 0) + 1;
       const div = document.createElement('div');
       div.className = 'chat-msg' + (m.isAdmin ? ' admin' : '') + (m.isTeacherPanel ? ' teacher' : '');
-      div.innerHTML = '<span class="chat-name">' + escapeHtml(m.name || 'Student') + '</span>' + escapeHtml(m.text || '');
+      div.innerHTML = '<span class="chat-name">' + escapeHtml(m.name || 'Student') + '</span>' + renderMsgText(m.text);
       chatList.appendChild(div);
     });
     chatList.scrollTop = chatList.scrollHeight;
+    refreshStudentsView();
   });
 }
 
 function sendAdminMsg() {
   const text = chatInput.value.trim().slice(0, 50);
   if (!text) return;
-  messagesRef().add({ name: 'Teacher', text, isAdmin: true, ts: firebase.firestore.FieldValue.serverTimestamp() });
+  const mentions = Array.from(text.matchAll(/@([A-Za-z0-9_ .]{1,20})/g)).map(m => m[1].trim());
+  messagesRef().add({ name: 'Teacher', text, isAdmin: true, mentions, ts: firebase.firestore.FieldValue.serverTimestamp() });
   chatInput.value = '';
   charCounter.textContent = '0/50';
   charCounter.classList.remove('limit');
+  mentionDropdown.classList.remove('show');
 }
 chatSendBtn.addEventListener('click', sendAdminMsg);
-chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAdminMsg(); });
+chatInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !mentionDropdown.classList.contains('show')) sendAdminMsg(); });
 listenChat();
+listenReactions();
 
 /* ===== Students & Block ===== */
 function studentsRef(){ return roomRef().collection('students'); }
@@ -1474,6 +1980,47 @@ function listenBlocked() {
 listenStudents();
 listenBlocked();
 setInterval(refreshStudentsView, 15000); // clear out students who went offline
+
+/* ===== Advanced Controls: Chat on/off, Reactions on/off, Private Chat =====
+   These flags live on the room doc itself, so any student page listening to
+   rooms/{ROOM_ID} in realtime can enforce the same rules — a student page
+   needs matching logic to actually hide the Send button / reaction button
+   and to filter which messages it renders when privateChat is true. */
+const chatEnabledToggle = document.getElementById('chatEnabledToggle');
+const reactionsEnabledToggle = document.getElementById('reactionsEnabledToggle');
+const privateChatToggle = document.getElementById('privateChatToggle');
+const chatDisabledNote = document.getElementById('chatDisabledNote');
+let suppressAdvSync = false;
+
+function listenRoomSettings() {
+  roomRef().onSnapshot(doc => {
+    const d = doc.data() || {};
+    const chatEnabled = d.chatEnabled !== false;      // default true
+    const reactionsEnabled = d.reactionsEnabled !== false; // default true
+    const privateChat = d.privateChat === true;        // default false
+    suppressAdvSync = true;
+    chatEnabledToggle.checked = chatEnabled;
+    reactionsEnabledToggle.checked = reactionsEnabled;
+    privateChatToggle.checked = privateChat;
+    suppressAdvSync = false;
+    chatDisabledNote.classList.toggle('show', !chatEnabled);
+    emojiToggleBtn.style.display = reactionsEnabled ? '' : 'none';
+    if (!reactionsEnabled) emojiPopup.classList.remove('show');
+  });
+}
+chatEnabledToggle.addEventListener('change', () => {
+  if (suppressAdvSync) return;
+  roomRef().set({ chatEnabled: chatEnabledToggle.checked }, { merge: true });
+});
+reactionsEnabledToggle.addEventListener('change', () => {
+  if (suppressAdvSync) return;
+  roomRef().set({ reactionsEnabled: reactionsEnabledToggle.checked }, { merge: true });
+});
+privateChatToggle.addEventListener('change', () => {
+  if (suppressAdvSync) return;
+  roomRef().set({ privateChat: privateChatToggle.checked }, { merge: true });
+});
+listenRoomSettings();
 
 /* ===== Poll ===== */
 const pollFormArea = document.getElementById('pollFormArea');
